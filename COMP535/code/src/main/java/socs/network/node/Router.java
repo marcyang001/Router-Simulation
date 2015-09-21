@@ -243,7 +243,13 @@ class ClientServiceThread implements Runnable {
 		if(server != null)
 		{
 			System.out.print("just connected to " + server.getRemoteSocketAddress() );
-			DataInputStream inStream = new DataInputStream(server.getInputStream());
+			try {
+				DataInputStream inStream = new DataInputStream(server.getInputStream());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				System.out.print("Could not get input stream");
+			}
+			
 			
 		}
 	}
