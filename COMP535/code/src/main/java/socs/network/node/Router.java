@@ -3,6 +3,7 @@ package socs.network.node;
 import socs.network.util.Configuration;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -36,11 +37,11 @@ public class Router {
 	 * @param destinationIP
 	 *            the ip adderss of the destination simulated router
 	 */
-
 	private void processDetect(String destinationIP) {
 
 	}
 
+	
 	/**
 	 * disconnect with the router identified by the given destination ip address
 	 * Notice: this command should trigger the synchronization of database
@@ -61,23 +62,21 @@ public class Router {
 			serverSocket = new ServerSocket(processPort); 
 		
             // Accept incoming connections. 
-            Socket clientSocket = serverSocket.accept(); 
+            Socket sSocket = serverSocket.accept(); 
  
             // accept() will block until a client connects to the server. 
             // If execution reaches this point, then it means that a client 
             // socket has been accepted. 
  
-                // For each client, we will start a service thread to 
+            // For each client, we will start a service thread to 
             // service the client requests. This is to demonstrate a 
             // Multi-Threaded server. Starting a thread also lets our 
             // MultiThreadedSocketServer accept multiple connections simultaneously. 
  
-                // Start a Service thread 
+            // Start a Service thread 
         	
-            ClientServiceThread cliThread = new ClientServiceThread(clientSocket, serverSocket);
+            ClientServiceThread cliThread = new ClientServiceThread(sSocket);
             Thread t = new Thread(cliThread);  
-            
-        
 			
 	    } 
 		catch(IOException ioe) 
@@ -229,26 +228,23 @@ public class Router {
 }
 
 class ClientServiceThread implements Runnable {
-	Socket myClientSocket;
-	ServerSocket myServerSocket;
+	Socket server;
 	boolean m_bRunThread = true;
 
 	public ClientServiceThread() {
 		super();
 	}
 
-	ClientServiceThread(Socket c, ServerSocket s) {
-		myClientSocket = c;
-		myServerSocket = s;
+	ClientServiceThread(Socket s) {
+		server = s;
 	}
 	
 	public void run() {
-		if(myServerSocket != null)
+		if(server != null)
 		{
-		
+			System.out.print("just connected to " + server.getRemoteSocketAddress() );
+			DataInputStream inStream = new DataInputStream(server.getInputStream());
+			
 		}
-		// TODO Auto-generated method stub
-		System.out.print("just connected to ");
-		
 	}
 }
