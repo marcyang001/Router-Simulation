@@ -14,7 +14,6 @@ public class Router {
 
 	protected LinkStateDatabase lsd;
 	RouterDescription rd = new RouterDescription();
-
 	int validPortNum = 0;
 	// assuming that all routers are with 4 ports
 	Link[] ports = new Link[4];
@@ -66,14 +65,23 @@ public class Router {
 	 */
 	private void processAttach(String processIP, short processPort,
 			String simulatedIP, short weight) throws Exception {
+		
+        // accept() will block until a client connects to the server. 
+        // If execution reaches this point, then it means that a client 
+        // socket has been accepted. 
 
+        // For each client, we will start a service thread to 
+        // service the client requests. This is to demonstrate a 
+        // Multi-Threaded server. Starting a thread also lets our 
+        // MultiThreadedSocketServer accept multiple connections simultaneously. 
+
+        // Start a Client Service thread 
+        ClientServiceThread cliThread = new ClientServiceThread(processIP,processPort);
+        Thread t = new Thread(cliThread);
+		t.start();
 
 	}
 	
-
-	
-	
-
 	/**
 	 * broadcast Hello to neighbors
 	 */
@@ -84,14 +92,14 @@ public class Router {
 	/**
 	 * attach the link to the remote router, which is identified by the given
 	 * simulated ip; to establish the connection via socket, you need to
-	 * indentify the process IP and process Port; additionally, weight is the
+	 * identify the process IP and process Port; additionally, weight is the
 	 * cost to transmitting data through the link
 	 * <p/>
 	 * This command does trigger the link database synchronization
 	 */
 	private void processConnect(String processIP, short processPort,
 			String simulatedIP, short weight) {
-
+		
 	}
 
 	/**
@@ -160,70 +168,60 @@ public class Router {
 }
 
 class ServerServiceThread implements Runnable {
-	ServerSocket server;
-
+	ServerSocket sServer;
 	public ServerServiceThread() {
 		super();
 	}
 
-	ServerServiceThread(short portNum) {
+	public ServerServiceThread(short portNum) {
 		try {
-			server = new ServerSocket(portNum);
+			sServer = new ServerSocket(portNum);
+			System.out.println("Created a server socket with port number " + portNum );
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			System.out.println("cannot create server socket;");
 		}
 	}
 	
 	public void run() {
-		if(server != null)
+		if(sServer != null)
 		{
 			System.out.println("Initializing the server: ");
 			try
 			{ 
 	            // Accept incoming connections. 
-	            Socket sSocket = server.accept(); 
-	 
-	            // accept() will block until a client connects to the server. 
-	            // If execution reaches this point, then it means that a client 
-	            // socket has been accepted. 
-	 
-	            // For each client, we will start a service thread to 
-	            // service the client requests. This is to demonstrate a 
-	            // Multi-Threaded server. Starting a thread also lets our 
-	            // MultiThreadedSocketServer accept multiple connections simultaneously. 
-	 
-	            // Start a Service thread 
-	        	
-	            ClientServiceThread cliThread = new ClientServiceThread(sSocket);
-	            Thread t = new Thread(cliThread);
-	            System.out.println("Initialized the server thread.");
-				t.start();
+	            Socket newClientSocket = sServer.accept(); 
+	            System.out.println("Initialized the server thread. Waiting for client communication.");
 		    } 
 			catch(IOException ioe) 
 		    { 
-				System.out.println("Could not create server socket on port "+ server.getLocalSocketAddress() +". Quitting.");   
+				System.out.println("Could not create server socket on port "+ sServer.getLocalSocketAddress() +". Quitting.");   
 		    } 
+		}else {
+			System.out.println("serverSocket does not exist.");
 		}
 	}
 }
 
 
 class ClientServiceThread implements Runnable {
-	Socket server;
-
+	String m_processIP;
+	short m_serverPortNum;
 	public ClientServiceThread() {
 		super();
 	}
 
-	ClientServiceThread(Socket s) {
-		server = s;
+	ClientServiceThread(String processIP, short serverPortNum) {
+		m_serverPortNum = serverPortNum;
+		m_processIP = processIP;
 	}
 	
 	public void run() {
-		if(server != null)
-		{
-			System.out.print("just connected to " + server.getRemoteSocketAddress() );
+		try {
+			Socket client = new Socket(m_processIP, m_serverPortNum);
+			System.out.print("Just connected to " +  m_processIP);
+		} catch (IOException e) {
+			System.out.print("Cannot connected to " + m_processIP);
 		}
 	}
+
 }
