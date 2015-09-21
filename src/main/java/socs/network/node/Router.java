@@ -178,7 +178,7 @@ class ServerServiceThread implements Runnable {
 	public void run() {
 		if(server != null)
 		{
-			System.out.println("Initialize the server: ");
+			System.out.println("Initializing the server: ");
 			try
 			{ 
 	            // Accept incoming connections. 
@@ -196,7 +196,8 @@ class ServerServiceThread implements Runnable {
 	            // Start a Service thread 
 	        	
 	            ClientServiceThread cliThread = new ClientServiceThread(sSocket);
-	            Thread t = new Thread(cliThread);  
+	            Thread t = new Thread(cliThread);
+	            System.out.println("Initialized the server thread.");
 				t.start();
 		    } 
 			catch(IOException ioe) 
