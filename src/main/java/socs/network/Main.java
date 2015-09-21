@@ -6,17 +6,13 @@ import socs.network.util.Configuration;
 public class Main {
 
 	public static void main(String[] args) {
-		if (args.length != 1) {
+		if (args.length != 2) {
 			System.out.println("usage: program conf_path");
 			System.exit(1);
 		}
-		 String addr =
-		  "/Users/marcyang/Desktop/COMP535/code/conf/router1.conf";
-		
 		short portNum = (short)Integer.parseInt(args[1]);
 		 
 		Router r = new Router(new Configuration(args[0]), portNum);
-		 //Router r = new Router(new Configuration(addr));
 		r.terminal();
 	}
 
