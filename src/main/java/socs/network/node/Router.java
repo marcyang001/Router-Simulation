@@ -3,6 +3,7 @@ package socs.network.node;
 import socs.network.util.Configuration;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -16,20 +17,15 @@ public class Router {
 	
 	
 	private ServerSocket serverSocket = null;
-	private Socket clientSocket = null;
 
 	int validPortNum = 0;
 	// assuming that all routers are with 4 ports
 	Link[] ports = new Link[4];
 
-	public Router(Configuration config, short processPort) {
+	public Router(Configuration config) {
 		rd.simulatedIPAddress = config.getString("socs.network.router.ip");
-		rd.processIPAddress = "127.0.0.1";
-		rd.processPortNumber = processPort;
-		rd.status = RouterStatus.INIT;
+		System.out.println(rd.processIPAddress);
 		lsd = new LinkStateDatabase(rd);
-		
-		initServerSocket();
 		
 	}
 	
@@ -41,11 +37,11 @@ public class Router {
 	 * @param destinationIP
 	 *            the ip adderss of the destination simulated router
 	 */
-
 	private void processDetect(String destinationIP) {
 
 	}
 
+	
 	/**
 	 * disconnect with the router identified by the given destination ip address
 	 * Notice: this command should trigger the synchronization of database
@@ -57,22 +53,38 @@ public class Router {
 
 	}
 	
-	private boolean initServerSocket() {
-	
+	private boolean initServerSocket(short processPort) {
+		
+		System.out.println("Initialize the server: ");
 		boolean serverOn = true;
 		try
 		{ 
-			serverSocket = new ServerSocket(rd.processPortNumber); 
-			System.out.println("Initialize the server on port: "+ rd.processPortNumber);
-			return serverOn;
+			serverSocket = new ServerSocket(processPort); 
+		
+            // Accept incoming connections. 
+            Socket sSocket = serverSocket.accept(); 
+ 
+            // accept() will block until a client connects to the server. 
+            // If execution reaches this point, then it means that a client 
+            // socket has been accepted. 
+ 
+            // For each client, we will start a service thread to 
+            // service the client requests. This is to demonstrate a 
+            // Multi-Threaded server. Starting a thread also lets our 
+            // MultiThreadedSocketServer accept multiple connections simultaneously. 
+ 
+            // Start a Service thread 
+        	
+            ClientServiceThread cliThread = new ClientServiceThread(sSocket);
+            Thread t = new Thread(cliThread);  
+			
 	    } 
 		catch(IOException ioe) 
 	    { 
-			System.out.println("Could not create server socket on port "+ rd.processPortNumber +". Quitting.");
-	            
+			System.out.println("Could not create server socket on port "+ processPort +". Quitting.");   
 	        serverOn = false;
-	        return serverOn;
 	    } 
+		return serverOn;
 	}
 
 	/**
@@ -93,6 +105,12 @@ public class Router {
 		 * 2. connect the client to the multithreaded server
 		 */
 		
+		//create the variables for server 
+		rd.processIPAddress = "127.0.0.1";
+		rd.processPortNumber = processPort;
+		rd.status = RouterStatus.INIT;
+		
+		initServerSocket((short) rd.processPortNumber); //initialize the server socket
 		
 		//establish the link between router 1 (host) and router 2 (client)
 		//router 1 (host) 
@@ -102,8 +120,8 @@ public class Router {
 		//router 2 (client)
 		ports[validPortNum].router2.processIPAddress = simulatedIP;
 		ports[validPortNum].router2.processPortNumber = processPort;
-		weight = (short) (weight +1);
-		validPortNum++;
+		weight = (short) (weight  +1);
+		validPortNum--;
 		
 		
 		
@@ -209,11 +227,8 @@ public class Router {
 
 }
 
-
-
-
 class ClientServiceThread implements Runnable {
-	Socket myClientSocket;
+	Socket server;
 	boolean m_bRunThread = true;
 
 	public ClientServiceThread() {
@@ -221,12 +236,21 @@ class ClientServiceThread implements Runnable {
 	}
 
 	ClientServiceThread(Socket s) {
-		myClientSocket = s;
-
+		server = s;
 	}
 	
 	public void run() {
-		// TODO Auto-generated method stub
-		
+		if(server != null)
+		{
+			System.out.print("just connected to " + server.getRemoteSocketAddress() );
+			try {
+				DataInputStream inStream = new DataInputStream(server.getInputStream());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				System.out.print("Could not get input stream");
+			}
+			
+			
+		}
 	}
 }
