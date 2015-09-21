@@ -76,6 +76,7 @@ public class Router {
         // MultiThreadedSocketServer accept multiple connections simultaneously. 
 
         // Start a Client Service thread 
+		
         ClientServiceThread cliThread = new ClientServiceThread(processIP,processPort);
         Thread t = new Thread(cliThread);
 		t.start();
@@ -189,9 +190,9 @@ class ServerServiceThread implements Runnable {
 			try
 			{ 
 	            // Accept incoming connections. 
-	            Socket newClientSocket = sServer.accept(); 
+	            Socket newSocket = sServer.accept(); 
 	            System.out.println("Initialized the server thread. Waiting for client communication.");
-		    } 
+			} 
 			catch(IOException ioe) 
 		    { 
 				System.out.println("Could not create server socket on port "+ sServer.getLocalSocketAddress() +". Quitting.");   
@@ -206,21 +207,38 @@ class ServerServiceThread implements Runnable {
 class ClientServiceThread implements Runnable {
 	String m_processIP;
 	short m_serverPortNum;
+	Link[] m_cliLink;
 	public ClientServiceThread() {
 		super();
 	}
 
-	ClientServiceThread(String processIP, short serverPortNum) {
+	ClientServiceThread(String processIP, short serverPortNum, Link[] link) {
 		m_serverPortNum = serverPortNum;
 		m_processIP = processIP;
+		m_cliLink = link;
 	}
 	
 	public void run() {
 		try {
 			Socket client = new Socket(m_processIP, m_serverPortNum);
 			System.out.print("Just connected to " +  m_processIP);
+			client.close();
+			//establish the link for the first time
+			/*
+			 * Define: 
+			 * router 1 is the localhost 
+			 * router 2 is the router you are connecting to / receiving from
+			 */
+			
+			if (m_cliLink.length == 0) {
+				
+				m_cliLink[0].router1.simulatedIPAddress = m_processIP;
+				m_cliLink[0].router1.processPortNumber =
+				
+				
+			}
 		} catch (IOException e) {
-			System.out.print("Cannot connected to " + m_processIP);
+			System.out.print("Cannot connect to " + m_processIP + ", exception occured is " + e);
 		}
 	}
 
