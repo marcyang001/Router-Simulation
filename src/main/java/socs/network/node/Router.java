@@ -70,10 +70,10 @@ public class Router {
 	private boolean isRouterPortAlreadyTaken( String simIPAddr ) {
 		for(int i=0; i<ports.length; i++) {
 			if(ports[i] != null) {
-				if(ports[i].router2.simulatedIPAddress != simIPAddr) {
-					continue;
-				}else {
+				if(ports[i].router2.simulatedIPAddress.equals(simIPAddr)) {
 					return false;
+				}else {
+					continue;
 				}
 			}else {
 				return true;
@@ -105,8 +105,6 @@ public class Router {
         // Start a Client Service thread 
 		// router 1 = localhost
 		// router 2 = roter you are sending to
-		//RouterDescription 
-		
 		boolean isAvail = isRouterPortAlreadyTaken(simulatedIP);
 		if(isAvail) {
 	        ClientServiceThread cliThread = new ClientServiceThread(processIP,processPort);
@@ -151,8 +149,10 @@ public class Router {
 	private void processNeighbors() {
 		// find all the links of the node and print the IP address of the links
 		for(int i = 0; i<ports.length; i++) {
-			System.out.println("IP Address of the neighbor " + i+1 + ": " + 
+			if( ports[i] != null ) {
+				System.out.println("IP Address of the neighbor " + i+1 + ": " + 
 					ports[i].router2.simulatedIPAddress);
+			}
 		}
 	}
 
@@ -224,7 +224,7 @@ class ServerServiceThread implements Runnable {
 			sServer = new ServerSocket(portNum);
 			System.out.println("Created a server socket with port number " + portNum );
 		} catch (IOException e) {
-			System.out.println("cannot create server socket;");
+			System.out.println("Cannot create server socket;");
 		}
 	}
 	
@@ -236,7 +236,8 @@ class ServerServiceThread implements Runnable {
 			{ 
 	            // Accept incoming connections. 
 	            Socket newSocket = sServer.accept(); 
-	            System.out.println("Initialized the server thread. Waiting for client communication.");
+	            System.out.println("The client with Ip Address " + newSocket.getRemoteSocketAddress() + 
+	            		" just connected to you.");
 	            System.out.print(">> ");
 			} 
 			catch(IOException ioe) 
@@ -244,7 +245,7 @@ class ServerServiceThread implements Runnable {
 				System.out.println("Could not create server socket on port "+ sServer.getLocalSocketAddress() +". Quitting.");   
 		    } 
 		}else {
-			System.out.println("serverSocket does not exist.");
+			System.out.println("ServerSocket does not exist.");
 		}
 	}
 }
@@ -266,7 +267,7 @@ class ClientServiceThread implements Runnable {
 	public void run() {
 		try {
 			Socket client = new Socket(m_processIP, m_serverPortNum);
-			System.out.print("Just connected to " +  m_processIP);
+			System.out.println("Just connected to " +  m_processIP);
 			System.out.print(">> ");
 			
 			client.close();	
