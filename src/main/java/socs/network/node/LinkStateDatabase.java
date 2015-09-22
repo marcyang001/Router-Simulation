@@ -26,6 +26,9 @@ public class LinkStateDatabase {
     return null;
   }
 
+  public void updateLSA(String ipAddress, LSA lsa) {
+	  _store.put(ipAddress, lsa);
+  }
   //initialize the linkstate database by adding an entry about the router itself
   private LSA initLinkStateDatabase() {
     LSA lsa = new LSA();

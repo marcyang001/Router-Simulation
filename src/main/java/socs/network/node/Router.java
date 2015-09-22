@@ -14,13 +14,15 @@ public class Router {
 
 	protected LinkStateDatabase lsd;
 	RouterDescription rd = new RouterDescription();
-	int validPortNum = 0;
+	int validPortNum;
 	// assuming that all routers are with 4 ports
 	Link[] ports = new Link[4];
 
 	public Router(Configuration config, short portNum) {
+		validPortNum = 0;
 		rd.simulatedIPAddress = config.getString("socs.network.router.ip");
 		rd.processPortNumber = portNum;
+		rd.processIPAddress = "127.0.0.1";
 		initServerSocket(rd.processPortNumber); //initialize the server socket
 		lsd = new LinkStateDatabase(rd);
 	}
@@ -49,12 +51,37 @@ public class Router {
 
 	}
 	
+	/**
+	 * initialize the the server side socket
+	 * 
+	 */
 	private void initServerSocket(short processPort) {
 		ServerServiceThread serThread = new ServerServiceThread(processPort);
         Thread t = new Thread(serThread); 
         t.start();
 	}
 
+	/**
+	 * 
+	 * helper function to check if the router would be mapped twice
+	 * @return -1 if already taken, or the array index of the next available slot 
+	 * 
+	 */
+	private boolean isRouterPortAlreadyTaken( String simIPAddr ) {
+		for(int i=0; i<ports.length; i++) {
+			if(ports[i] != null) {
+				if(ports[i].router2.simulatedIPAddress != simIPAddr) {
+					continue;
+				}else {
+					return false;
+				}
+			}else {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	/**
 	 * attach the link to the remote router, which is identified by the given
 	 * simulated ip; to establish the connection via socket, you need to
@@ -76,11 +103,26 @@ public class Router {
         // MultiThreadedSocketServer accept multiple connections simultaneously. 
 
         // Start a Client Service thread 
+		// router 1 = localhost
+		// router 2 = roter you are sending to
+		//RouterDescription 
 		
-        ClientServiceThread cliThread = new ClientServiceThread(processIP,processPort);
-        Thread t = new Thread(cliThread);
-		t.start();
-
+		boolean isAvail = isRouterPortAlreadyTaken(simulatedIP);
+		if(isAvail) {
+	        ClientServiceThread cliThread = new ClientServiceThread(processIP,processPort);
+	        Thread t = new Thread(cliThread);
+			t.start();
+			rd.status = RouterStatus.INIT;
+			// router 1 = localhost
+			// router 2 = router you are sending to
+			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP, RouterStatus.INIT);
+			RouterDescription r1 = new RouterDescription(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, rd.status);
+			Link l = new Link(r1, r2);
+			ports[validPortNum] = l;
+			validPortNum++;
+		}else{
+			System.out.println("The link is already established.");
+		}
 	}
 	
 	/**
@@ -108,7 +150,10 @@ public class Router {
 	 */
 	private void processNeighbors() {
 		// find all the links of the node and print the IP address of the links
-
+		for(int i = 0; i<ports.length; i++) {
+			System.out.println("IP Address of the neighbor " + i+1 + ": " + 
+					ports[i].router2.simulatedIPAddress);
+		}
 	}
 
 	/**
@@ -135,7 +180,7 @@ public class Router {
 					processQuit();
 				} else if (command.startsWith("attach ")) {
 
-					if (validPortNum >= 4) {
+					if (validPortNum >= 4 ) {
 						System.out.println("The router's ports are full");
 					} else {
 						String[] cmdLine = command.split(" ");
@@ -192,6 +237,7 @@ class ServerServiceThread implements Runnable {
 	            // Accept incoming connections. 
 	            Socket newSocket = sServer.accept(); 
 	            System.out.println("Initialized the server thread. Waiting for client communication.");
+	            System.out.print(">> ");
 			} 
 			catch(IOException ioe) 
 		    { 
@@ -207,36 +253,23 @@ class ServerServiceThread implements Runnable {
 class ClientServiceThread implements Runnable {
 	String m_processIP;
 	short m_serverPortNum;
-	Link[] m_cliLink;
 	public ClientServiceThread() {
 		super();
 	}
 
-	ClientServiceThread(String processIP, short serverPortNum, Link[] link) {
+	ClientServiceThread(String processIP, short serverPortNum) {
 		m_serverPortNum = serverPortNum;
 		m_processIP = processIP;
-		m_cliLink = link;
+		
 	}
 	
 	public void run() {
 		try {
 			Socket client = new Socket(m_processIP, m_serverPortNum);
 			System.out.print("Just connected to " +  m_processIP);
-			client.close();
-			//establish the link for the first time
-			/*
-			 * Define: 
-			 * router 1 is the localhost 
-			 * router 2 is the router you are connecting to / receiving from
-			 */
+			System.out.print(">> ");
 			
-			if (m_cliLink.length == 0) {
-				
-				m_cliLink[0].router1.simulatedIPAddress = m_processIP;
-				m_cliLink[0].router1.processPortNumber =
-				
-				
-			}
+			client.close();	
 		} catch (IOException e) {
 			System.out.print("Cannot connect to " + m_processIP + ", exception occured is " + e);
 		}
