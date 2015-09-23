@@ -4,8 +4,10 @@ import socs.network.util.Configuration;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -104,7 +106,7 @@ public class Router {
 
         // Start a Client Service thread 
 		// router 1 = localhost
-		// router 2 = roter you are sending to
+		// router 2 = router you are sending to
 		boolean isAvail = isRouterPortAlreadyTaken(simulatedIP);
 		if(isAvail) {
 	        ClientServiceThread cliThread = new ClientServiceThread(processIP,processPort);
@@ -277,3 +279,44 @@ class ClientServiceThread implements Runnable {
 	}
 
 }
+
+class ClientBroadcastThread implements Runnable {
+	
+	/**
+	 * 
+	 * this thread serves for broadcasting all neighbors
+	 */
+	Socket m_client;
+	String m_simulatedIP;
+	
+	//pass in a socket client. 
+	//just type in ClientBroadcastThread cliBroadcast = new ClientBroadcastThread(rd.SimulatedIP, new Socket(serverName, port))
+	public ClientBroadcastThread(String localSimulatedIP, Socket client) {
+		this.m_client = client;
+		this.m_simulatedIP = localSimulatedIP;
+	}
+	
+	
+	
+	public void run() {
+		// TODO Auto-generated method stub
+		
+		OutputStream outToServer;
+		try {
+			outToServer = m_client.getOutputStream();
+			DataOutputStream out = new DataOutputStream(outToServer);
+	        out.writeUTF("Hello from "
+	                     + m_simulatedIP);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			System.out.println("Cannot emit messages to neighbors");
+		}
+        
+		
+		
+	}
+	
+	
+	
+}
+
