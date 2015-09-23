@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class Router {
 
@@ -19,6 +20,7 @@ public class Router {
 	int validPortNum;
 	// assuming that all routers are with 4 ports
 	Link[] ports = new Link[4];
+	ClientServiceThread cliThread;
 
 	public Router(Configuration config, short portNum) {
 		validPortNum = 0;
@@ -58,7 +60,7 @@ public class Router {
 	 * 
 	 */
 	private void initServerSocket(short processPort) {
-		ServerServiceThread serThread = new ServerServiceThread(processPort);
+		ServerServiceThread serThread = new ServerServiceThread(processPort, ports);
         Thread t = new Thread(serThread); 
         t.start();
 	}
@@ -109,7 +111,8 @@ public class Router {
 		// router 2 = router you are sending to
 		boolean isAvail = isRouterPortAlreadyTaken(simulatedIP);
 		if(isAvail) {
-	        ClientServiceThread cliThread = new ClientServiceThread(processIP,processPort);
+			
+	        cliThread = new ClientServiceThread(processIP,processPort);
 	        Thread t = new Thread(cliThread);
 			t.start();
 			rd.status = RouterStatus.INIT;
@@ -120,6 +123,10 @@ public class Router {
 			Link l = new Link(r1, r2);
 			ports[validPortNum] = l;
 			validPortNum++;
+			
+			//implicitly send the package to the server
+			
+			
 		}else{
 			System.out.println("The link is already established.");
 		}
@@ -127,8 +134,31 @@ public class Router {
 	
 	/**
 	 * broadcast Hello to neighbors
+	 * @throws IOException 
+	 * @throws UnknownHostException 
 	 */
-	private void processStart() {
+	private void processStart() throws IOException {
+		
+		//scan through all the links and emit messages to neighbors
+		/*
+		String serverIP = ports[0].router2.processIPAddress;
+		short serverPort = ports[0].router2.processPortNumber;
+		
+		System.out.println("The destination IP: " + serverIP);
+		
+		
+		
+		Socket client = new Socket(serverIP, serverPort);
+		ClientBroadcastThread cliBroadcast = new ClientBroadcastThread(rd.simulatedIPAddress, client);
+		
+		Thread t = new Thread(cliBroadcast);
+		t.start();
+		
+		System.out.println("Client already sent the message");
+		*/
+		
+		cliThread.publishMessageToServer();
+		
 
 	}
 
@@ -216,19 +246,23 @@ public class Router {
 
 }
 
+
 class ServerServiceThread implements Runnable {
 	ServerSocket sServer;
+	Link m_port[];
 	public ServerServiceThread() {
 		super();
 	}
 
-	public ServerServiceThread(short portNum) {
+	public ServerServiceThread(short portNum, Link ports[]) {
 		try {
+			this.m_port = ports;
 			sServer = new ServerSocket(portNum);
 			System.out.println("Created a server socket with port number " + portNum );
 		} catch (IOException e) {
 			System.out.println("Cannot create server socket;");
 		}
+			
 	}
 	
 	public void run() {
@@ -241,83 +275,105 @@ class ServerServiceThread implements Runnable {
 	            Socket newSocket = sServer.accept(); 
 	            System.out.println("The client with Ip Address " + newSocket.getRemoteSocketAddress() + 
 	            		" just connected to you.");
-	            System.out.print(">> ");
+	            
+	            
+	            //server receives the message here
+	            DataInputStream in = new DataInputStream(newSocket.getInputStream());
+				System.out.println(in.readUTF());
+				
+				System.out.println("Server done reading");
+				//	newSocket.close();
+	            //}
+	            //ServerBroadcastThread sBroadcast = new ServerBroadcastThread(newSocket);
+	            
+	            
+	            //Thread t = new Thread(sBroadcast);
+	            //sBroadcast.run();
+	            
+	            
 			} 
 			catch(IOException ioe) 
 		    { 
-				System.out.println("Could not create server socket on port "+ sServer.getLocalSocketAddress() +". Quitting.");   
-		    } 
+				ioe.printStackTrace();
+				//System.out.println("Could not create server socket on port "+ sServer.getLocalSocketAddress() +". Quitting.");   
+		    }
+			
+			
+		
+			
+			
 		}else {
 			System.out.println("ServerSocket does not exist.");
+			
 		}
+		System.out.println(">> ");
 	}
 }
 
 
+class ServerBroadcastThread implements Runnable {
+	
+	Socket m_server;
+	
+	public ServerBroadcastThread(Socket server) {
+		this.m_server = server;
+	}
+	
+	
+	public void run() {
+		// TODO Auto-generated method stub
+		try {
+			DataInputStream in = new DataInputStream(m_server.getInputStream());
+			System.out.println("received " + in.readUTF());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		System.out.println(">> ");
+	}
+	
+	
+}
+
 class ClientServiceThread implements Runnable {
 	String m_processIP;
 	short m_serverPortNum;
+	Socket client;
 	public ClientServiceThread() {
 		super();
 	}
 
 	ClientServiceThread(String processIP, short serverPortNum) {
-		m_serverPortNum = serverPortNum;
-		m_processIP = processIP;
+		this.m_serverPortNum = serverPortNum;
+		this.m_processIP = processIP;
 		
 	}
 	
 	public void run() {
 		try {
-			Socket client = new Socket(m_processIP, m_serverPortNum);
+			client = new Socket(m_processIP, m_serverPortNum);
 			System.out.println("Just connected to " +  m_processIP);
+			
+			//OutputStream outToServer = client.getOutputStream();
+	        //DataOutputStream out = new DataOutputStream(outToServer);
+	        //out.writeUTF("Hello from " + client.getLocalSocketAddress());
 			System.out.print(">> ");
 			
-			client.close();	
+			
+			//client.close();	
 		} catch (IOException e) {
 			System.out.print("Cannot connect to " + m_processIP + ", exception occured is " + e);
 		}
 	}
-
-}
-
-class ClientBroadcastThread implements Runnable {
 	
-	/**
-	 * 
-	 * this thread serves for broadcasting all neighbors
-	 */
-	Socket m_client;
-	String m_simulatedIP;
-	
-	//pass in a socket client. 
-	//just type in ClientBroadcastThread cliBroadcast = new ClientBroadcastThread(rd.SimulatedIP, new Socket(serverName, port))
-	public ClientBroadcastThread(String localSimulatedIP, Socket client) {
-		this.m_client = client;
-		this.m_simulatedIP = localSimulatedIP;
-	}
-	
-	
-	
-	public void run() {
-		// TODO Auto-generated method stub
-		
-		OutputStream outToServer;
-		try {
-			outToServer = m_client.getOutputStream();
-			DataOutputStream out = new DataOutputStream(outToServer);
-	        out.writeUTF("Hello from "
-	                     + m_simulatedIP);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Cannot emit messages to neighbors");
-		}
-        
-		
+	public void publishMessageToServer() throws IOException {
+		OutputStream outToServer = this.client.getOutputStream();
+		DataOutputStream out = new DataOutputStream(outToServer);
+		out.writeUTF("Hello from " + client.getLocalSocketAddress());
 		
 	}
 	
-	
-	
+
 }
 
