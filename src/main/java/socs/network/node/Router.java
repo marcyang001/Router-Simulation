@@ -201,7 +201,7 @@ public class Router {
 					processNeighbors();
 				} else {
 					// invalid command
-					System.out.println("Invalid command. Please re-enter.");
+					System.out.println("Invalid command. Quitting");
 					break;
 				}
 				System.out.print(">> ");
