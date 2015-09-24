@@ -65,7 +65,7 @@ public class Router {
 	 * 
 	 */
 	private void initServerSocket(short processPort) {
-		ServerServiceThread serThread = new ServerServiceThread(processPort, ports);
+		ServerServiceThread serThread = new ServerServiceThread(processPort, rd, ports);
         Thread t = new Thread(serThread); 
         t.start();
 	}
@@ -122,7 +122,7 @@ public class Router {
 			t.start();
 			// router 1 = localhost
 			// router 2 = router you are sending to
-			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP, RouterStatus.INIT);
+			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP);
 			RouterDescription r1 = new RouterDescription(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, rd.status);
 			Link l = new Link(r1, r2);
 			ports[validPortNum] = l;
@@ -232,16 +232,18 @@ public class Router {
 
 class ServerServiceThread implements Runnable {
 	ServerSocket sServer;
-	Link m_port[];
+	Link m_ports[];
+	int acceptedLinkNum = 0;
+	RouterDescription routerDesc;
 	public ServerServiceThread() {
 		super();
 	}
-
-	public ServerServiceThread(short portNum, Link ports[]) {
+	public ServerServiceThread(short portNum, RouterDescription rd, Link ports[]) {
 		try {
-			this.m_port = ports;
+			this.m_ports = ports;
 			sServer = new ServerSocket(portNum);
 			System.out.println("Created a server socket with port number " + portNum );
+			this.routerDesc = rd;
 		} catch (IOException e) {
 			System.out.println("Cannot create server socket;");
 		}
@@ -256,6 +258,7 @@ class ServerServiceThread implements Runnable {
 			{ 
 	            // Accept incoming connections. 
 	            Socket newSocket = sServer.accept(); 
+	            
 	            System.out.println("The client with Ip Address " + newSocket.getRemoteSocketAddress() + 
 	            		" just connected to you.");
 
@@ -266,9 +269,14 @@ class ServerServiceThread implements Runnable {
 				if(packet.sospfType == 0) {
 					// say Hello~
 					System.out.println("received HELLO from " + packet.neighborID + ";");
-					
+					// router 1 = localhost
+					RouterDescription r2 = new RouterDescription(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, RouterStatus.INIT);
+					RouterDescription r1 = new RouterDescription(routerDesc.processIPAddress, routerDesc.processPortNumber, routerDesc.simulatedIPAddress);
+					Link l = new Link(r1, r2);
+					m_ports[acceptedLinkNum] = l;
+					System.out.println("set " + r2.simulatedIPAddress + " state to " + r2.status );
 				}  
-	            
+				acceptedLinkNum++;
 			} 
 			catch(IOException ioe) 
 		    { 
