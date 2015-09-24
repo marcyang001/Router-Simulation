@@ -117,7 +117,7 @@ public class Router {
 		boolean isAvail = isRouterPortAlreadyTaken(simulatedIP);
 		if(isAvail) {
 			
-	        cliThread = new ClientServiceThread(rd, simulatedIP);
+	        cliThread = new ClientServiceThread(rd, processIP, processPort, simulatedIP);
 	        Thread t = new Thread(cliThread);
 			t.start();
 			// router 1 = localhost
@@ -258,8 +258,7 @@ class ServerServiceThread implements Runnable {
 	            Socket newSocket = sServer.accept(); 
 	            System.out.println("The client with Ip Address " + newSocket.getRemoteSocketAddress() + 
 	            		" just connected to you.");
-	            
-	            
+
 	            //server receives the message here
 	            ObjectInputStream inStreamFromClient = new ObjectInputStream(newSocket.getInputStream());
 				SOSPFPacket packet = (SOSPFPacket) inStreamFromClient.readObject();
@@ -268,9 +267,7 @@ class ServerServiceThread implements Runnable {
 					// say Hello~
 					System.out.println("received HELLO from " + packet.neighborID + ";");
 					
-				}
-				
-	            
+				}  
 	            
 			} 
 			catch(IOException ioe) 
@@ -291,33 +288,33 @@ class ServerServiceThread implements Runnable {
 			System.out.println("ServerSocket does not exist.");
 			
 		}
-		System.out.println(">> ");
+		System.out.print(">> ");
 	}
 }
 
 
 class ClientServiceThread implements Runnable {
 	RouterDescription rdServer;
-	String DestSimulatedIP;
+	String m_destSimulatedIP;
 	Socket client;
+	String m_connectingIP;
+	short m_connectingPort;
 	public ClientServiceThread() {
 		super();
 	}
 
-	ClientServiceThread(RouterDescription rdServer, String destIP) {
+	ClientServiceThread(RouterDescription rdServer, String connectingIP, short connectingPort, String connectingSimulatedIP) {
 		this.rdServer = rdServer;
-		this.DestSimulatedIP = destIP;
-		
+		this.m_destSimulatedIP = connectingSimulatedIP;
+		this.m_connectingIP = connectingIP;
+		this.m_connectingPort = connectingPort;
 	}
 	
 	public void run() {
 		try {
-			client = new Socket(rdServer.processIPAddress, rdServer.processPortNumber);
-			System.out.println("Just connected to " +  rdServer.processIPAddress);
-			
-			//OutputStream outToServer = client.getOutputStream();
-	        //DataOutputStream out = new DataOutputStream(outToServer);
-	        //out.writeUTF("Hello from " + client.getLocalSocketAddress());
+			client = new Socket(m_connectingIP, m_connectingPort);
+			System.out.println("Just connected to " + m_destSimulatedIP);
+	
 			System.out.print(">> ");
 			
 			
@@ -330,7 +327,7 @@ class ClientServiceThread implements Runnable {
 	public void publishMessageToServer() throws IOException {
 		
 		SOSPFPacket packet = new SOSPFPacket(rdServer.processIPAddress, rdServer.processPortNumber, 
-				rdServer.simulatedIPAddress, this.DestSimulatedIP, (short)0, rdServer.simulatedIPAddress, rdServer.simulatedIPAddress ); 
+				rdServer.simulatedIPAddress, this.m_destSimulatedIP, (short)0, rdServer.simulatedIPAddress, rdServer.simulatedIPAddress ); 
 		
 		ObjectOutputStream outStreamToServer = new ObjectOutputStream(this.client.getOutputStream());
 
