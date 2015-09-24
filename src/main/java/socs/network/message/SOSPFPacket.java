@@ -16,11 +16,15 @@ public class SOSPFPacket implements Serializable {
 
   //common header
   public short sospfType; //0 - HELLO, 1 - LinkState Update
+  // routerID = IP address of the router which sent this packet
   public String routerID;
 
   //used by HELLO message to identify the sender of the message
   //e.g. when router A sends HELLO to its neighbor, it has to fill this field with its own
   //simulated IP address
+  // e.g. in HELLO message, it equals to src IP
+  //in LSAUpdate packet, it will change for every hop
+  // neighborID is also srcIP
   public String neighborID; //(sender's)neighbor's simulated IP address
 
   //used by LSAUPDATE
