@@ -142,7 +142,7 @@ public class Router {
 			
 			
 		}else{
-			System.out.println("The link is already established.");
+			System.out.println("The link is already established from client.");
 		}
 	}
 	
@@ -152,23 +152,56 @@ public class Router {
 	 * @throws UnknownHostException 
 	 */
 	private void processStart() {
-		//step 1 
+		
 
 		//create 4 packets for each neighbor
 		for (int i = 0; i < 4; i++) {
 			if (this.ports[i] != null) {
 				
-				System.out.println("ENTER THE FOR LOOP!!!!!");
 				try {
+					/** step 1 **/ 
+					//client sends the packet to the server
 					ObjectOutputStream outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
 					SOSPFPacket clientPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, ports[i].router2.simulatedIPAddress, (short) 0, 
 							rd.simulatedIPAddress, rd.simulatedIPAddress);
-					System.out.println("Object : " + clientPacket.srcIP);
+					//System.out.println("Object : " + clientPacket.srcIP);
 					outStreamToServer.writeObject(clientPacket);
+					/**The process of step 2 (client side)**/
+					//client try receives the packet from the server
+					ObjectInputStream inStreamFromServer = new ObjectInputStream(clients[i].getInputStream());
+					SOSPFPacket packetFromServer = (SOSPFPacket) inStreamFromServer.readObject();
+					
+					//packet received
+					if (packetFromServer.sospfType == 0) {
+						//Client prints the HELLO message from server
+						System.out.println("received HELLO from " + packetFromServer.neighborID + "; ");
+						
+						//set the link to TWO_WAY 
+						ports[validPortNum -1].router2.status = RouterStatus.TWO_WAY;
+						
+						System.out.println("set " + ports[validPortNum -1].router2.simulatedIPAddress +" state to " + ports[validPortNum -1].router2.status);
+						
+					}
+					else {
+						System.out.println("Client did not receive a return message from the server");
+
+					}
+					
+					/**The process of step 3 (client confirmation)**/
+					ObjectOutputStream confirmPacket = new ObjectOutputStream(clients[i].getOutputStream());
+					confirmPacket.writeObject(clientPacket);
+					
+					
+					
+					
+					
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					System.out.println("Client cannot send to the object to the server ");
 					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					System.out.println("Client cannot receive the packet from server");
 				}
 
 				
@@ -178,8 +211,7 @@ public class Router {
 				break;
 			}
 			
-		}
-		System.out.println("Exits THE FOR LOOP!!!!!");
+		}//end the for loop
 		
 	}
 
@@ -340,6 +372,8 @@ class ServerInputOutput implements Runnable {
 	Socket server;
 	SOSPFPacket packetFromClient;
 	ObjectInputStream inStream;
+	ObjectOutputStream outStream;
+	ObjectInputStream confirm;
 	RouterDescription serverRouter;
 	Link[] mm_ports;
 	int acceptedLinks = 0;
@@ -368,7 +402,9 @@ class ServerInputOutput implements Runnable {
 					boolean isAvail = isRouterPortAlreadyTaken(packetFromClient.neighborID);
 					if(isAvail) {
 						//add to the server link
+						//Router 2 is the client/sender IP --> look into the packet
 						RouterDescription r2 = new RouterDescription(packetFromClient.srcProcessIP, packetFromClient.srcProcessPort, packetFromClient.neighborID, RouterStatus.INIT);
+						//router1 = is the server IP 
 						RouterDescription r1 = new RouterDescription(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress);
 						Link l = new Link(r1, r2);
 						mm_ports[acceptedLinks] = l;
@@ -376,25 +412,39 @@ class ServerInputOutput implements Runnable {
 						
 						System.out.println("set " + r2.simulatedIPAddress + "state to " + r2.status);
 						
+						//send back to the client
+						outStream = new ObjectOutputStream(server.getOutputStream());
+						//create a server packet and send it back to the client
+						
+						
+						SOSPFPacket serverPacket = new SOSPFPacket(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress, packetFromClient.neighborID,
+								(short)0, serverRouter.simulatedIPAddress, serverRouter.simulatedIPAddress);						
+						System.out.println("server packet: " + serverPacket.neighborID);
+						outStream.writeObject(serverPacket);
+						
+						
 						
 					}else{
 						
-						//when the server receives from the same client
-						System.out.println("The link is already established.");
-						int index = acceptedLinks - 1;
+						//when the server receives the package again from the same client (twice)
+						//System.out.println("The link is already established.");
 						
-						mm_ports[index].router2.status = RouterStatus.TWO_WAY;
-						
-						System.out.println("set " + mm_ports[index].router2.simulatedIPAddress + "state to " + mm_ports[index].router2.status);
+						if (packetFromClient.sospfType == 0) {
+							int index = acceptedLinks - 1;
+							mm_ports[index].router2.status = RouterStatus.TWO_WAY;					
+							System.out.println("set " + mm_ports[index].router2.simulatedIPAddress + "state to " + mm_ports[index].router2.status);
+							
+							
+							
+							
+						}
 						
 					}
 					
 					
-					//Now server Gives back an response
-					
 				}
 			} catch (IOException e) {
-			
+				e.printStackTrace();
 				System.out.println("Cannot receive input object");
 			}
 			catch (ClassNotFoundException ce) {
