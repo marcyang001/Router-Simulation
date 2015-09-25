@@ -22,7 +22,7 @@ public class Router {
 
 	protected LinkStateDatabase lsd;
 	RouterDescription rd = new RouterDescription();
-	int validPortNum;
+	Integer validPortNum;
 	// assuming that all routers are with 4 ports
 	Link[] ports = new Link[4];
 	Socket[] clients =new Socket[4];
@@ -66,7 +66,7 @@ public class Router {
 	 * 
 	 */
 	private void initServerSocket(short processPort) {
-		serThread = new ServerServiceThread(processPort, rd, ports);
+		serThread = new ServerServiceThread(processPort, rd, ports, validPortNum);
         Thread t = new Thread(serThread);
         t.start();
         
@@ -186,11 +186,15 @@ public class Router {
 						
 						for (int j = 0; j < 4; j++) {
 							//find the Link that matched the packet information
-							System.out.println("valid index : " + j);
-							if (ports[j].router2.simulatedIPAddress.equals(packetFromServer.neighborID)) {
-								ports[j].router2.status = RouterStatus.TWO_WAY;
-								System.out.println("set " + ports[j].router2.simulatedIPAddress +" state to " + ports[j].router2.status);
-								break;
+							
+							if (this.ports[j] != null) {
+								System.out.println("valid index : " + j);
+								if (ports[j].router2.simulatedIPAddress
+										.equals(packetFromServer.neighborID)) {
+									ports[j].router2.status = RouterStatus.TWO_WAY;
+									System.out.println("set " + ports[j].router2.simulatedIPAddress + " state to " + ports[j].router2.status);
+									break;
+								}
 							}
 							
 							
@@ -325,17 +329,18 @@ class ServerServiceThread implements Runnable {
 	SOSPFPacket packet;
 	int firstTimeReceiving = 0;
 	RouterDescription routerDesc;
-	
+	Integer LinkNum;
 	
 	public ServerServiceThread() {
 		super();
 	}
-	public ServerServiceThread(short portNum, RouterDescription rd, Link ports[]) {
+	public ServerServiceThread(short portNum, RouterDescription rd, Link ports[], Integer linkNum) {
 		try {
 			this.m_ports = ports;
 			sServer = new ServerSocket(portNum);
 			System.out.println("Created a server socket with port number " + portNum );
 			this.routerDesc = rd;
+			this.LinkNum = linkNum;
 		} catch (IOException e) {
 			System.out.println("Cannot create server socket;");
 		}
@@ -361,7 +366,7 @@ class ServerServiceThread implements Runnable {
 					
 					//invoke an objectInput thread
 					
-					ServerInputOutput serverResponse = new ServerInputOutput(newSocket, routerDesc, m_ports);
+					ServerInputOutput serverResponse = new ServerInputOutput(newSocket, routerDesc, m_ports, this.LinkNum);
 					Thread serverResponseThread = new Thread(serverResponse);
 					
 					serverResponseThread.start();
@@ -398,12 +403,17 @@ class ServerInputOutput implements Runnable {
 	ObjectInputStream confirm;
 	RouterDescription serverRouter;
 	Link[] mm_ports;
-	int acceptedLinks = 0;
+	Integer acceptedLinks;
+	//Integer linksNumFromClient;
 	
-	public ServerInputOutput(Socket server, RouterDescription serverRouter, Link[] ports) {
+	
+	public ServerInputOutput(Socket server, RouterDescription serverRouter, Link[] ports, Integer linksFromClient) {
 		this.server = server;
 		this.serverRouter = serverRouter;
 		this.mm_ports = ports;
+		//get the number from the client side
+		this.acceptedLinks = linksFromClient;
+		
 	}
 	
 	public void run() {
@@ -439,10 +449,18 @@ class ServerInputOutput implements Runnable {
 									serverRouter.simulatedIPAddress);
 							Link l = new Link(r1, r2);
 							mm_ports[acceptedLinks] = l;
-							acceptedLinks++;
-
+							
+							//check the links from the client
+							//the server links number is client links # + the newly added link
+							/**
+							 * 
+							 *  update the links on the client side 
+							 *  */
+							this.acceptedLinks += 1;
+							
+							
 							System.out.println("set " + r2.simulatedIPAddress
-									+ "state to " + r2.status);
+									+ " state to " + r2.status);
 
 							// send back to the client
 							outStream = new ObjectOutputStream(
@@ -478,7 +496,7 @@ class ServerInputOutput implements Runnable {
 										System.out
 												.println("set "
 														+ mm_ports[i].router2.simulatedIPAddress
-														+ "state to "
+														+ " state to "
 														+ mm_ports[i].router2.status);
 										break;
 									}
