@@ -25,8 +25,7 @@ public class Router {
 	int validPortNum;
 	// assuming that all routers are with 4 ports
 	Link[] ports = new Link[4];
-	Socket client;
-	ClientServiceThread cliThread;
+	Socket[] clients =new Socket[4];
 	ServerServiceThread serThread;
 
 	public Router(Configuration config, short portNum) {
@@ -68,8 +67,12 @@ public class Router {
 	 */
 	private void initServerSocket(short processPort) {
 		serThread = new ServerServiceThread(processPort, rd, ports);
-        Thread t = new Thread(serThread); 
+        Thread t = new Thread(serThread);
+        t.setDaemon(true);
         t.start();
+        
+        
+        
 	}
 
 	/**
@@ -124,13 +127,13 @@ public class Router {
 			//t.start();
 			// router 1 = localhost
 			// router 2 = router you are sending to
-			this.client = new Socket(processIP, processPort);
-			System.out.println("Just connected to " + this.client.getRemoteSocketAddress());
+			clients[validPortNum] = new Socket(processIP, processPort);
+			System.out.println("Just connected to " + clients[validPortNum].getRemoteSocketAddress());
 	
 			//System.out.print(">> ");
 			
 			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP);
-			RouterDescription r1 = new RouterDescription(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, rd.status);
+			RouterDescription r1 = new RouterDescription(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress);
 			Link l = new Link(r1, r2);
 			ports[validPortNum] = l;
 			validPortNum++;
@@ -148,22 +151,27 @@ public class Router {
 	 * @throws IOException 
 	 * @throws UnknownHostException 
 	 */
-	private void processStart() throws IOException {
+	private void processStart() {
 		//step 1 
-		int previous = validPortNum -1;
-		
-		String[] neigborSimulatedIP = new String[4];
-		SOSPFPacket[] clientPacket = new SOSPFPacket[4];
-		
+
 		//create 4 packets for each neighbor
 		for (int i = 0; i < 4; i++) {
 			if (this.ports[i] != null) {
-				neigborSimulatedIP[i] = ports[i].router2.simulatedIPAddress;
-				clientPacket[i] = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, neigborSimulatedIP[i], (short) 0, 
-						rd.simulatedIPAddress, rd.simulatedIPAddress);
-				ObjectOutputStream outStreamToServer = new ObjectOutputStream(this.client.getOutputStream());
+				
+				System.out.println("ENTER THE FOR LOOP!!!!!");
+				try {
+					ObjectOutputStream outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
+					SOSPFPacket clientPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, ports[i].router2.simulatedIPAddress, (short) 0, 
+							rd.simulatedIPAddress, rd.simulatedIPAddress);
+					System.out.println("Object : " + clientPacket.srcIP);
+					outStreamToServer.writeObject(clientPacket);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					System.out.println("Client cannot send to the object to the server ");
+					e.printStackTrace();
+				}
 
-				outStreamToServer.writeObject(clientPacket[i]);
+				
 				
 			}
 			else {
@@ -171,26 +179,8 @@ public class Router {
 			}
 			
 		}
+		System.out.println("Exits THE FOR LOOP!!!!!");
 		
-		
-		//SOSPFPacket clientPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress,
-		
-		
-		
-		
-		
-		//cliThread.publishMessageToServer();
-		
-		//step 2
-		//cliThread.receiveMessageFromServer();
-		//update the link to TWO_WAY
-		//ports[previous].router2.status = RouterStatus.TWO_WAY;
-		//System.out.println("set " + ports[validPortNum-1].router2.simulatedIPAddress + " state to " + ports[validPortNum-1].router2.status + "; ");	
-		
-		//step 3
-		//cliThread.publishMessageToServer();
-		//System.out.println("Client published another message");
-		//serThread.updateLink();
 	}
 
 	/**
@@ -283,7 +273,6 @@ class ServerServiceThread implements Runnable {
 	Socket newSocket;
 	Link m_ports[];
 	SOSPFPacket packet;
-	int acceptedLinkNum = 0;
 	int firstTimeReceiving = 0;
 	RouterDescription routerDesc;
 	
@@ -304,97 +293,124 @@ class ServerServiceThread implements Runnable {
 	}
 	
 	public void run() {
-		while(true) {
-		if(sServer != null)
-		{
-			
-				
-			acceptedLinkNum = 0;
-			//System.out.println("Initializing the server: ");
-			try
-			{ 
-	            // Accept incoming connections. 
-				newSocket = sServer.accept(); 
-	            
-	            System.out.println("The client with Ip Address " + newSocket.getRemoteSocketAddress() + 
-	            		" just connected to you.");
-	            
-	           /*
-	            //server receives the message here
-	            ObjectInputStream inStreamFromClient = new ObjectInputStream(newSocket.getInputStream());
-				packet = (SOSPFPacket) inStreamFromClient.readObject();
-				
-				if(packet.sospfType == 0) {
-					// received the broadcast and say Hello~
-					System.out.println("received HELLO from " + packet.neighborID + ";");
-					// router 1 = localhost
+		while (true) {
+			if (sServer != null) {
+
+				// System.out.println("Initializing the server: ");
+				try {
+					// Accept incoming connections.
+					newSocket = sServer.accept();
+
+					System.out.println("The client with Ip Address "
+							+ newSocket.getRemoteSocketAddress()
+							+ " just connected to you.");
 					
-					boolean isAvail = isRouterPortAlreadyTaken(packet.srcIP);
+					//invoke an objectInput thread
 					
-					if(isAvail) {
-						RouterDescription r2 = new RouterDescription(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, RouterStatus.INIT);
-						RouterDescription r1 = new RouterDescription(routerDesc.processIPAddress, routerDesc.processPortNumber, routerDesc.simulatedIPAddress);
-						Link l = new Link(r1, r2);
-						m_ports[acceptedLinkNum] = l;
-						System.out.println("set " + r2.simulatedIPAddress + " state to " + r2.status );	
-						acceptedLinkNum++;
-						
-						
-						SOSPFPacket serverPacket = new SOSPFPacket (routerDesc.processIPAddress, routerDesc.processPortNumber, routerDesc.simulatedIPAddress, 
-								packet.neighborID, (short)0, routerDesc.simulatedIPAddress, routerDesc.simulatedIPAddress);
-						
-						try {
-							ObjectOutputStream backToClient = new ObjectOutputStream(this.newSocket.getOutputStream());
-							backToClient.writeObject(serverPacket);	
-								
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						
-					}
-					else {
-						//if we dont add the link, then there is already a link. We update the link
-						m_ports[acceptedLinkNum].router2.status = RouterStatus.TWO_WAY;
-						System.out.println("set " + m_ports[acceptedLinkNum].router2.simulatedIPAddress + " state to " + m_ports[acceptedLinkNum].router2.status);
-						
-						acceptedLinkNum++;
-						
-					}
+					ServerInputOutput serverResponse = new ServerInputOutput(newSocket, routerDesc, m_ports);
+					Thread serverResponseThread = new Thread(serverResponse);
 					
-						
-			}*/
-			
-			this.newSocket.close();
-				
-		} 
-			catch(IOException ioe) 
-		    { 
-				ioe.printStackTrace();
-				System.out.println("Could not create server socket on port "+ sServer.getLocalSocketAddress() +". Quitting.");   
-		    }
-			//catch (ClassNotFoundException ce)
-			//{
-			//	ce.printStackTrace();
-			//	System.out.println("Could not find the class SOSPFPacket");
-			//}
-			
-		
-			
-			
-		}else {
-			System.out.println("ServerSocket does not exist.");
-			
+					serverResponseThread.start();
+					
+					
+
+
+				} catch (IOException ioe) {
+					
+					System.out.println("Could not create server socket on port "
+									+ sServer.getLocalSocketAddress()
+									+ ". Quitting.");
+				}// catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					//e.printStackTrace();
+				//}
+
+			} else {
+				System.out.println("ServerSocket does not exist.");
+
+			}
+
+			System.out.print(">> ");
 		}
-		
-		System.out.print(">> ");
-		}
+	}	
+}
+
+class ServerInputOutput implements Runnable {
+
+	Socket server;
+	SOSPFPacket packetFromClient;
+	ObjectInputStream inStream;
+	RouterDescription serverRouter;
+	Link[] mm_ports;
+	int acceptedLinks = 0;
+	
+	public ServerInputOutput(Socket server, RouterDescription serverRouter, Link[] ports) {
+		this.server = server;
+		this.serverRouter = serverRouter;
+		this.mm_ports = ports;
 	}
 	
+	public void run() {
+		while (true) {
+			
+			
+			//server receives the message
+			try {
+				inStream = new ObjectInputStream(server.getInputStream());
+				packetFromClient = (SOSPFPacket) inStream.readObject();
+				
+				//Message received 
+				if(packetFromClient.sospfType == 0 ) {
+					
+					System.out.println("received HELLO from " + packetFromClient.neighborID + "; ");
+					
+					
+					boolean isAvail = isRouterPortAlreadyTaken(packetFromClient.neighborID);
+					if(isAvail) {
+						//add to the server link
+						RouterDescription r2 = new RouterDescription(packetFromClient.srcProcessIP, packetFromClient.srcProcessPort, packetFromClient.neighborID, RouterStatus.INIT);
+						RouterDescription r1 = new RouterDescription(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress);
+						Link l = new Link(r1, r2);
+						mm_ports[acceptedLinks] = l;
+						acceptedLinks++;
+						
+						System.out.println("set " + r2.simulatedIPAddress + "state to " + r2.status);
+						
+						
+					}else{
+						
+						//when the server receives from the same client
+						System.out.println("The link is already established.");
+						int index = acceptedLinks - 1;
+						
+						mm_ports[index].router2.status = RouterStatus.TWO_WAY;
+						
+						System.out.println("set " + mm_ports[index].router2.simulatedIPAddress + "state to " + mm_ports[index].router2.status);
+						
+					}
+					
+					
+					//Now server Gives back an response
+					
+				}
+			} catch (IOException e) {
+			
+				System.out.println("Cannot receive input object");
+			}
+			catch (ClassNotFoundException ce) {
+				
+				System.out.println("Packet cannot be found");
+				
+			}
+			
+			
+		}
+		
+	}
 	private boolean isRouterPortAlreadyTaken( String simIPAddr ) {
-		for(int i=0; i< this.m_ports.length; i++) {
-			if(this.m_ports[i] != null) {
-				if(this.m_ports[i].router2.simulatedIPAddress.equals(simIPAddr)) {
+		for(int i=0; i<mm_ports.length; i++) {
+			if(mm_ports[i] != null) {
+				if(mm_ports[i].router2.simulatedIPAddress.equals(simIPAddr)) {
 					return false;
 				}else {
 					continue;
@@ -406,102 +422,7 @@ class ServerServiceThread implements Runnable {
 		return false;
 	}
 	
-	
-	//step 3 from server side
-	public void updateLink() {
-		m_ports[acceptedLinkNum].router2.status = RouterStatus.TWO_WAY;
-		
-		System.out.println("set " + m_ports[acceptedLinkNum].router2.simulatedIPAddress + " state to " + m_ports[acceptedLinkNum].router2.status);
-		
-		acceptedLinkNum++;
-	}
-	
-	
 }
 
 
-class ClientServiceThread implements Runnable {
-	RouterDescription rdServer;
-	String m_destSimulatedIP;
-	Socket client;
-	String m_connectingIP;
-	short m_connectingPort;
-	public ClientServiceThread() {
-		super();
-	}
-
-	ClientServiceThread(RouterDescription rdServer, String connectingIP, short connectingPort, String connectingSimulatedIP) {
-		this.rdServer = rdServer;
-		this.m_destSimulatedIP = connectingSimulatedIP;
-		this.m_connectingIP = connectingIP;
-		this.m_connectingPort = connectingPort;
-	}
-	
-	public void run() {
-		try {
-			client = new Socket(m_connectingIP, m_connectingPort);
-			System.out.println("Just connected to " + m_destSimulatedIP);
-	
-			System.out.print(">> ");
-				
-		} catch (IOException e) {
-			System.out.print("Cannot connect to " + rdServer.processIPAddress + ", exception occured is " + e);
-		}
-	}
-	// step 1 , 3
-	public void publishMessageToServer() throws IOException {
-		
-		SOSPFPacket packet = new SOSPFPacket(rdServer.processIPAddress, rdServer.processPortNumber, 
-				rdServer.simulatedIPAddress, this.m_destSimulatedIP, (short)0, rdServer.simulatedIPAddress, rdServer.simulatedIPAddress ); 
-		
-		ObjectOutputStream outStreamToServer = new ObjectOutputStream(this.client.getOutputStream());
-
-		outStreamToServer.writeObject(packet);
-		
-
-	}
-	
-	
-	public void receiveMessageFromServer() {
-		
-		//client receives the packet message from server
-		
-		//SOSPFPacket packet = (SOSPFPacket) inStreamFromClient.readObject();
-		ObjectInputStream inputFromServer;
-		try {
-			
-			//client tries to read the object sent by the server
-			inputFromServer = new ObjectInputStream(client.getInputStream());
-			SOSPFPacket packetFromServer = (SOSPFPacket) inputFromServer.readObject();
-			
-			System.out.println("received HELLO from " + packetFromServer.neighborID + "; ");
-			
-			
-			client.close();
-			
-			//SOSPFPacket clientPacket = new SOSPFPacket(rdServer.processIPAddress, rdServer.processPortNumber, 
-			//		rdServer.simulatedIPAddress, this.m_destSimulatedIP, (short)0, rdServer.simulatedIPAddress, rdServer.simulatedIPAddress ); 
-			
-			//ObjectOutputStream outStreamToServer = new ObjectOutputStream(this.client.getOutputStream());
-
-			//outStreamToServer.writeObject(clientPacket);
-			
-			
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SOSPFPacket from server is not found");
-		}
-		System.out.print(">> ");	
-	}
-	
-	
-	
-
-}
 
