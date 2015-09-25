@@ -153,19 +153,22 @@ public class Router {
 	 */
 	private void processStart() {
 		
-
+		
 		//create 4 packets for each neighbor
 		for (int i = 0; i < 4; i++) {
 			if (this.ports[i] != null) {
 				
+				System.out.println("There exists a valid port " + i);
 				try {
 					/** step 1 **/ 
 					//client sends the packet to the server
 					ObjectOutputStream outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
 					SOSPFPacket clientPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, ports[i].router2.simulatedIPAddress, (short) 0, 
 							rd.simulatedIPAddress, rd.simulatedIPAddress);
-					//System.out.println("Object : " + clientPacket.srcIP);
+					System.out.println("Object : " + clientPacket.srcIP);
 					outStreamToServer.writeObject(clientPacket);
+					
+					
 					/**The process of step 2 (client side)**/
 					//client try receives the packet from the server
 					ObjectInputStream inStreamFromServer = new ObjectInputStream(clients[i].getInputStream());
@@ -337,6 +340,10 @@ class ServerServiceThread implements Runnable {
 							+ newSocket.getRemoteSocketAddress()
 							+ " just connected to you.");
 					
+					//add links here 
+					
+					
+					
 					//invoke an objectInput thread
 					
 					ServerInputOutput serverResponse = new ServerInputOutput(newSocket, routerDesc, m_ports);
@@ -419,7 +426,7 @@ class ServerInputOutput implements Runnable {
 						
 						SOSPFPacket serverPacket = new SOSPFPacket(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress, packetFromClient.neighborID,
 								(short)0, serverRouter.simulatedIPAddress, serverRouter.simulatedIPAddress);						
-						System.out.println("server packet: " + serverPacket.neighborID);
+						//System.out.println("server packet: " + serverPacket.neighborID);
 						outStream.writeObject(serverPacket);
 						
 						
@@ -434,8 +441,12 @@ class ServerInputOutput implements Runnable {
 							mm_ports[index].router2.status = RouterStatus.TWO_WAY;					
 							System.out.println("set " + mm_ports[index].router2.simulatedIPAddress + "state to " + mm_ports[index].router2.status);
 							
+							//send back the package again
 							
-							
+							ObjectOutputStream outAgain = new ObjectOutputStream(server.getOutputStream());
+							SOSPFPacket anotherServerPacket = new SOSPFPacket(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress, packetFromClient.neighborID,
+									(short)0, serverRouter.simulatedIPAddress, serverRouter.simulatedIPAddress);
+							outAgain.writeObject(anotherServerPacket);
 							
 						}
 						
