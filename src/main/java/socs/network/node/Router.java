@@ -68,7 +68,6 @@ public class Router {
 	private void initServerSocket(short processPort) {
 		serThread = new ServerServiceThread(processPort, rd, ports);
         Thread t = new Thread(serThread);
-        t.setDaemon(true);
         t.start();
         
         
@@ -156,10 +155,14 @@ public class Router {
 		
 		//create 4 packets for each neighbor
 		for (int i = 0; i < 4; i++) {
+			
 			if (this.ports[i] != null) {
 				
 				System.out.println("There exists a valid port " + i);
 				try {
+					if (clients[i] == null) {
+						clients[i] = new Socket(ports[i].router2.processIPAddress, ports[i].router2.processPortNumber);
+					}
 					/** step 1 **/ 
 					//client sends the packet to the server
 					ObjectOutputStream outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
@@ -180,9 +183,21 @@ public class Router {
 						System.out.println("received HELLO from " + packetFromServer.neighborID + "; ");
 						
 						//set the link to TWO_WAY 
-						ports[validPortNum -1].router2.status = RouterStatus.TWO_WAY;
 						
-						System.out.println("set " + ports[validPortNum -1].router2.simulatedIPAddress +" state to " + ports[validPortNum -1].router2.status);
+						for (int j = 0; j < 4; j++) {
+							//find the Link that matched the packet information
+							System.out.println("valid index : " + j);
+							if (ports[j].router2.simulatedIPAddress.equals(packetFromServer.neighborID)) {
+								ports[j].router2.status = RouterStatus.TWO_WAY;
+								System.out.println("set " + ports[j].router2.simulatedIPAddress +" state to " + ports[j].router2.status);
+								break;
+							}
+							
+							
+						}
+						
+						
+						
 						
 					}
 					else {
@@ -405,54 +420,90 @@ class ServerInputOutput implements Runnable {
 					
 					System.out.println("received HELLO from " + packetFromClient.neighborID + "; ");
 					
-					
-					boolean isAvail = isRouterPortAlreadyTaken(packetFromClient.neighborID);
-					if(isAvail) {
-						//add to the server link
-						//Router 2 is the client/sender IP --> look into the packet
-						RouterDescription r2 = new RouterDescription(packetFromClient.srcProcessIP, packetFromClient.srcProcessPort, packetFromClient.neighborID, RouterStatus.INIT);
-						//router1 = is the server IP 
-						RouterDescription r1 = new RouterDescription(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress);
-						Link l = new Link(r1, r2);
-						mm_ports[acceptedLinks] = l;
-						acceptedLinks++;
-						
-						System.out.println("set " + r2.simulatedIPAddress + "state to " + r2.status);
-						
-						//send back to the client
-						outStream = new ObjectOutputStream(server.getOutputStream());
-						//create a server packet and send it back to the client
-						
-						
-						SOSPFPacket serverPacket = new SOSPFPacket(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress, packetFromClient.neighborID,
-								(short)0, serverRouter.simulatedIPAddress, serverRouter.simulatedIPAddress);						
-						//System.out.println("server packet: " + serverPacket.neighborID);
-						outStream.writeObject(serverPacket);
-						
-						
-						
-					}else{
-						
-						//when the server receives the package again from the same client (twice)
-						//System.out.println("The link is already established.");
-						
-						if (packetFromClient.sospfType == 0) {
-							int index = acceptedLinks - 1;
-							mm_ports[index].router2.status = RouterStatus.TWO_WAY;					
-							System.out.println("set " + mm_ports[index].router2.simulatedIPAddress + "state to " + mm_ports[index].router2.status);
-							
-							//send back the package again
-							
-							ObjectOutputStream outAgain = new ObjectOutputStream(server.getOutputStream());
-							SOSPFPacket anotherServerPacket = new SOSPFPacket(serverRouter.processIPAddress, serverRouter.processPortNumber, serverRouter.simulatedIPAddress, packetFromClient.neighborID,
-									(short)0, serverRouter.simulatedIPAddress, serverRouter.simulatedIPAddress);
-							outAgain.writeObject(anotherServerPacket);
-							
+					if (acceptedLinks < 4) {
+
+						boolean isAvail = isRouterPortAlreadyTaken(packetFromClient.neighborID);
+						if (isAvail) {
+							// add to the server link
+							// Router 2 is the client/sender IP --> look into
+							// the packet
+							RouterDescription r2 = new RouterDescription(
+									packetFromClient.srcProcessIP,
+									packetFromClient.srcProcessPort,
+									packetFromClient.neighborID,
+									RouterStatus.INIT);
+							// router1 = is the server IP
+							RouterDescription r1 = new RouterDescription(
+									serverRouter.processIPAddress,
+									serverRouter.processPortNumber,
+									serverRouter.simulatedIPAddress);
+							Link l = new Link(r1, r2);
+							mm_ports[acceptedLinks] = l;
+							acceptedLinks++;
+
+							System.out.println("set " + r2.simulatedIPAddress
+									+ "state to " + r2.status);
+
+							// send back to the client
+							outStream = new ObjectOutputStream(
+									server.getOutputStream());
+							// create a server packet and send it back to the
+							// client
+
+							SOSPFPacket serverPacket = new SOSPFPacket(
+									serverRouter.processIPAddress,
+									serverRouter.processPortNumber,
+									serverRouter.simulatedIPAddress,
+									packetFromClient.neighborID, (short) 0,
+									serverRouter.simulatedIPAddress,
+									serverRouter.simulatedIPAddress);
+							// System.out.println("server packet: " +
+							// serverPacket.neighborID);
+							outStream.writeObject(serverPacket);
+
+						} else {
+
+							// when the server receives the package again from
+							// the same client (twice)
+							// System.out.println("The link is already established.");
+
+							if (packetFromClient.sospfType == 0) {
+								int i;
+								for (i = 0; i < 4; i++) {
+									// scan through the links and find the
+									// router2
+									if (mm_ports[i].router2.simulatedIPAddress
+											.equals(packetFromClient.neighborID)) {
+										mm_ports[i].router2.status = RouterStatus.TWO_WAY;
+										System.out
+												.println("set "
+														+ mm_ports[i].router2.simulatedIPAddress
+														+ "state to "
+														+ mm_ports[i].router2.status);
+										break;
+									}
+								}
+								// send back the package again
+
+								ObjectOutputStream outAgain = new ObjectOutputStream(
+										server.getOutputStream());
+								SOSPFPacket anotherServerPacket = new SOSPFPacket(
+										serverRouter.processIPAddress,
+										serverRouter.processPortNumber,
+										serverRouter.simulatedIPAddress,
+										packetFromClient.neighborID, (short) 0,
+										serverRouter.simulatedIPAddress,
+										serverRouter.simulatedIPAddress);
+								outAgain.writeObject(anotherServerPacket);
+
+							}
+
 						}
-						
 					}
-					
-					
+					else {
+						System.out.println("Ports are full, no links added");
+					}
+
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
