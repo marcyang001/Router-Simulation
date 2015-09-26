@@ -127,17 +127,22 @@ public class Router {
 			// router 1 = localhost
 			// router 2 = router you are sending to
 			clients[validPortNum] = new Socket(processIP, processPort);
-			System.out.println("Just connected to " + clients[validPortNum].getRemoteSocketAddress());
-	
-			//System.out.print(">> ");
+			if (clients[validPortNum].isConnected()) {
+				System.out.println("Just connected to " + clients[validPortNum].getRemoteSocketAddress());
+				
+				//System.out.print(">> ");
+				
+				RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP);
+				RouterDescription r1 = new RouterDescription(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress);
+				Link l = new Link(r1, r2);
+				ports[validPortNum] = l;
+				validPortNum++;
+				
+			}
+			else {
+				System.out.println("System ports are full");
+			}
 			
-			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP);
-			RouterDescription r1 = new RouterDescription(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress);
-			Link l = new Link(r1, r2);
-			ports[validPortNum] = l;
-			validPortNum++;
-			
-			//implicitly send the package to the server
 			
 			
 		}else{
@@ -189,19 +194,14 @@ public class Router {
 							
 							if (this.ports[j] != null) {
 								System.out.println("valid index : " + j);
-								if (ports[j].router2.simulatedIPAddress
-										.equals(packetFromServer.neighborID)) {
+								if (ports[j].router2.simulatedIPAddress.equals(packetFromServer.neighborID)) {
 									ports[j].router2.status = RouterStatus.TWO_WAY;
 									System.out.println("set " + ports[j].router2.simulatedIPAddress + " state to " + ports[j].router2.status);
 									break;
 								}
 							}
-							
-							
 						}
-						
-						
-						
+
 						
 					}
 					else {
@@ -257,7 +257,7 @@ public class Router {
 		// find all the links of the node and print the IP address of the links
 		for(int i = 0; i<ports.length; i++) {
 			if( ports[i] != null ) {
-				System.out.println("IP Address of the neighbor " + i+1 + ": " + 
+				System.out.println("IP Address of the neighbor " + i + 1 + ": " + 
 					ports[i].router2.simulatedIPAddress);
 			}
 		}
@@ -353,12 +353,20 @@ class ServerServiceThread implements Runnable {
 
 				// System.out.println("Initializing the server: ");
 				try {
-					// Accept incoming connections.
-					newSocket = sServer.accept();
-
-					System.out.println("The client with Ip Address "
-							+ newSocket.getRemoteSocketAddress()
-							+ " just connected to you.");
+					
+					if (this.LinkNum-1 < 4) {
+						// Accept incoming connections.
+						newSocket = sServer.accept();
+						System.out.println("Server link number: " + this.LinkNum);
+						this.LinkNum++;
+						
+						System.out.println("The client with Ip Address "
+								+ newSocket.getRemoteSocketAddress()
+								+ " just connected to you.");
+						
+					
+					
+					
 					
 					//add links here 
 					
@@ -370,7 +378,7 @@ class ServerServiceThread implements Runnable {
 					Thread serverResponseThread = new Thread(serverResponse);
 					
 					serverResponseThread.start();
-					
+					}
 					
 
 
@@ -378,14 +386,11 @@ class ServerServiceThread implements Runnable {
 					
 					System.out.println("Could not create server socket on port "
 									+ sServer.getLocalSocketAddress()
-									+ ". Quitting.");
-				}// catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					//e.printStackTrace();
-				//}
+									+ ", or the socket port is full. Quitting.");
+				}
 
 			} else {
-				System.out.println("ServerSocket does not exist.");
+				System.out.println("ServerSocket does not exist");
 
 			}
 
@@ -430,7 +435,8 @@ class ServerInputOutput implements Runnable {
 					
 					System.out.println("received HELLO from " + packetFromClient.neighborID + "; ");
 					
-					if (acceptedLinks < 4) {
+					System.out.println("ACCEPTED LINK NUMBER IS " + acceptedLinks);
+					if (acceptedLinks < 5) {
 
 						boolean isAvail = isRouterPortAlreadyTaken(packetFromClient.neighborID);
 						if (isAvail) {
@@ -448,7 +454,7 @@ class ServerInputOutput implements Runnable {
 									serverRouter.processPortNumber,
 									serverRouter.simulatedIPAddress);
 							Link l = new Link(r1, r2);
-							mm_ports[acceptedLinks] = l;
+							mm_ports[acceptedLinks-1] = l;
 							
 							//check the links from the client
 							//the server links number is client links # + the newly added link
@@ -456,7 +462,7 @@ class ServerInputOutput implements Runnable {
 							 * 
 							 *  update the links on the client side 
 							 *  */
-							this.acceptedLinks += 1;
+							//this.acceptedLinks += 1;
 							
 							
 							System.out.println("set " + r2.simulatedIPAddress
