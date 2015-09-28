@@ -257,7 +257,7 @@ public class Router {
 		// find all the links of the node and print the IP address of the links
 		for(int i = 0; i<ports.length; i++) {
 			if( ports[i] != null ) {
-				System.out.println("IP Address of the neighbor " + i + 1 + ": " + 
+				System.out.println("IP Address of the neighbor " + (i + 1) + ": " + 
 					ports[i].router2.simulatedIPAddress);
 			}
 		}
