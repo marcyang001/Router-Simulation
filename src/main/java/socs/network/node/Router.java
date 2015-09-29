@@ -193,7 +193,7 @@ public class Router {
 							//find the Link that matched the packet information
 							
 							if (this.ports[j] != null) {
-								System.out.println("valid index : " + j);
+								//System.out.println("valid index : " + j);
 								if (ports[j].router2.simulatedIPAddress.equals(packetFromServer.neighborID)) {
 									ports[j].router2.status = RouterStatus.TWO_WAY;
 									System.out.println("set " + ports[j].router2.simulatedIPAddress + " state to " + ports[j].router2.status);
