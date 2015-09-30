@@ -370,14 +370,17 @@ class ServerServiceThread implements Runnable {
 		return false;
 	}
 	
+
 	public void run() {
+		Thread serverResponseThread = null;
 		while (true) {
 			if (sServer != null) {
 				try {
-					Socket newSocket = sServer.accept();
+					Socket newSocket;
+					//Socket newSocket = sServer.accept();
 					if (canAcceptIncomingConnection()) {
 						// Accept incoming connections.
-
+						newSocket = sServer.accept();
 						System.out.println("The client with Ip Address "
 								+ newSocket.getRemoteSocketAddress()
 								+ " just connected to you.");
@@ -385,13 +388,15 @@ class ServerServiceThread implements Runnable {
 
 						ServerInputOutput serverResponse = new ServerInputOutput(
 								newSocket, routerDesc, m_ports);
-						Thread serverResponseThread = new Thread(serverResponse);
+						serverResponseThread = new Thread(serverResponse);
 
 						serverResponseThread.start();
 					}
 					else {
-						newSocket.close();
+						
 						System.out.println("The server ports are full. No connection Allowed.");
+						//serverResponseThread.destroy();
+						sServer.close();
 						break;
 					}
 
@@ -420,72 +425,94 @@ class ServerInputOutput implements Runnable {
 	ObjectInputStream confirm;
 	RouterDescription serverRouter;
 	Link[] mm_ports;
-	
+	boolean flag;
 	public ServerInputOutput(Socket server, RouterDescription serverRouter,
 			Link[] ports) {
 		this.server = server;
 		this.serverRouter = serverRouter;
 		this.mm_ports = ports;
+		flag = canAcceptIncomingConnection();
 		// get the number from the client side
 
 	}
+	private boolean canAcceptIncomingConnection() {
+		for(int i =0; i< mm_ports.length; i++){
+			if(mm_ports[i] != null){
+				continue;
+			}else{
+				System.out.println("valid index " +i);
+				return true;
+			}
+		}
+		return false;
+	}
 
 	public void run() {
+		int nextAvail = 0;
+		
 		while (true) {
-
+			
 			// server receives the message
 			try {
-				inStream = new ObjectInputStream(server.getInputStream());
-				packetFromClient = (SOSPFPacket) inStream.readObject();
+				
+				if (flag) {
+					//System.out.println("Next avail =" + nextAvail);
+					inStream = new ObjectInputStream(server.getInputStream());
+					packetFromClient = (SOSPFPacket) inStream.readObject();
 
-				// Message received
-				if (packetFromClient.sospfType == 0) {
+					// Message received
+					if (packetFromClient.sospfType == 0) {
 
-					System.out.println("received HELLO from "
-							+ packetFromClient.neighborID + "; ");
-//					System.out.println("serverrouter ip: " + serverRouter.simulatedIPAddress +
-//							" packet neighbor id: " + packetFromClient.neighborID +
-//							" packet router id: " + packetFromClient.routerID);
+						System.out.println("received HELLO from "
+								+ packetFromClient.neighborID + "; ");
+						// System.out.println("serverrouter ip: " +
+						// serverRouter.simulatedIPAddress +
+						// " packet neighbor id: " + packetFromClient.neighborID
+						// +
+						// " packet router id: " + packetFromClient.routerID);
 
-					int nextAvail = isRouterPortAlreadyTaken(packetFromClient.neighborID, serverRouter.simulatedIPAddress);
-//					System.out.println("isrouterporttaken " + nextAvail);
-					if (nextAvail >= 0) {
-						// add to the server link
-						// Router 2 is the client/sender IP --> look into
-						// the packet
-						RouterDescription r2 = new RouterDescription(
-								packetFromClient.srcProcessIP,
-								packetFromClient.srcProcessPort,
-								packetFromClient.neighborID, RouterStatus.INIT);
-						// router1 = is the server IP
-						RouterDescription r1 = new RouterDescription(
-								serverRouter.processIPAddress,
-								serverRouter.processPortNumber,
+						nextAvail = isRouterPortAlreadyTaken(
+								packetFromClient.neighborID,
 								serverRouter.simulatedIPAddress);
-						Link l = new Link(r1, r2);
-						mm_ports[nextAvail] = l;
+						// System.out.println("isrouterporttaken " + nextAvail);
+						if (nextAvail >= 0) {
+							// add to the server link
+							// Router 2 is the client/sender IP --> look into
+							// the packet
+							RouterDescription r2 = new RouterDescription(
+									packetFromClient.srcProcessIP,
+									packetFromClient.srcProcessPort,
+									packetFromClient.neighborID,
+									RouterStatus.INIT);
+							// router1 = is the server IP
+							RouterDescription r1 = new RouterDescription(
+									serverRouter.processIPAddress,
+									serverRouter.processPortNumber,
+									serverRouter.simulatedIPAddress);
+							Link l = new Link(r1, r2);
+							mm_ports[nextAvail] = l;
 
-						System.out.println("set " + r2.simulatedIPAddress
-								+ " state to " + r2.status);
+							System.out.println("set " + r2.simulatedIPAddress
+									+ " state to " + r2.status);
 
-						// send back to the client
-						outStream = new ObjectOutputStream(
-								server.getOutputStream());
-						// create a server packet and send it back to the
-						// client
+							// send back to the client
+							outStream = new ObjectOutputStream(
+									server.getOutputStream());
+							// create a server packet and send it back to the
+							// client
 
-						SOSPFPacket serverPacket = new SOSPFPacket(
-								serverRouter.processIPAddress,
-								serverRouter.processPortNumber,
-								serverRouter.simulatedIPAddress,
-								packetFromClient.neighborID, (short) 0,
-								serverRouter.simulatedIPAddress,
-								serverRouter.simulatedIPAddress);
-						// System.out.println("server packet: " +
-						// serverPacket.neighborID);
-						outStream.writeObject(serverPacket);
+							SOSPFPacket serverPacket = new SOSPFPacket(
+									serverRouter.processIPAddress,
+									serverRouter.processPortNumber,
+									serverRouter.simulatedIPAddress,
+									packetFromClient.neighborID, (short) 0,
+									serverRouter.simulatedIPAddress,
+									serverRouter.simulatedIPAddress);
+							// System.out.println("server packet: " +
+							// serverPacket.neighborID);
+							outStream.writeObject(serverPacket);
 
-					} else {
+						} else {
 							// second hello
 							for (int i = 0; i < mm_ports.length; i++) {
 								// scan through the links
@@ -518,14 +545,22 @@ class ServerInputOutput implements Runnable {
 						}
 					}
 			 
+				}//flag ends
+				else {
+					System.out.println("Cannot receive message from client because ports are full");
+					//throw e;
+					break;
+				}
 
 			} catch (IOException e) {
 				System.out.println("Cannot receive input object. Quit");
-				break;
 			} catch (ClassNotFoundException ce) {
 
 				System.out.println("Packet cannot be found");
 
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
 
 		}
