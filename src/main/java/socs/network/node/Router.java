@@ -422,7 +422,7 @@ class ServerServiceThread implements Runnable {
 					}
 					else {
 						
-						System.out.println("The server ports are full. No connection Allowed.");
+						System.out.println("The server ports are full/last connection. No more connection Allowed.");
 						//serverResponseThread.destroy();
 						sServer.close();
 						break;
