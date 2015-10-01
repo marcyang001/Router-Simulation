@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -99,7 +100,7 @@ public class Router {
 	 * NOTE: this command should not trigger link database synchronization
 	 */
 	private void processAttach(String processIP, short processPort,
-			String simulatedIP, short weight) throws Exception {
+			String simulatedIP, short weight) {
 
 		// accept() will block until a client connects to the server.
 		// If execution reaches this point, then it means that a client
@@ -123,23 +124,34 @@ public class Router {
 			// t.start();
 			// router 1 = localhost
 			// router 2 = router you are sending to
-			clients[isAvail] = new Socket(processIP, processPort);
-			if (clients[isAvail].isConnected()) {
-				System.out.println("Just connected to " + simulatedIP);
+			try {
+				clients[isAvail] = new Socket(processIP, processPort);
+				clients[isAvail].setSoTimeout(2000);
+				if (clients[isAvail].isConnected()) {
+					System.out.println("Just connected to " + simulatedIP);
 
-				RouterDescription r2 = new RouterDescription(processIP,
-						processPort, simulatedIP);
-				RouterDescription r1 = new RouterDescription(
-						rd.processIPAddress, rd.processPortNumber,
-						rd.simulatedIPAddress);
-				Link l = new Link(r1, r2);
-				ports[isAvail] = l;
-				
+					RouterDescription r2 = new RouterDescription(processIP,
+							processPort, simulatedIP);
+					RouterDescription r1 = new RouterDescription(
+							rd.processIPAddress, rd.processPortNumber,
+							rd.simulatedIPAddress);
+					Link l = new Link(r1, r2);
+					ports[isAvail] = l;
+					
 
-			} else {
-				clients[isAvail] = null;
-				System.out.println("Could not make the connection. Check if the server's ports are full or server socket is open");
+				} else {
+					clients[isAvail] = null;
+					System.out.println("Could not make the connection. Check if the server's ports are full or server socket is open");
+				}
+			} catch (ConnectException e) {
+				// TODO Auto-generated catch block
+				System.out.println("Connection is refused by the server");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
+			
+
 
 		} else {
 			System.out.println("The link is already established or client ports are full.");
@@ -167,11 +179,14 @@ public class Router {
 						clients[i] = new Socket(
 								ports[i].router2.processIPAddress,
 								ports[i].router2.processPortNumber);
+						clients[i].setSoTimeout(1000);
+					
 					}
 					/** step 1 **/
 					// client sends the packet to the server
 					ObjectOutputStream outStreamToServer = new ObjectOutputStream(
 							clients[i].getOutputStream());
+					
 					SOSPFPacket clientPacket = new SOSPFPacket(
 							rd.processIPAddress, rd.processPortNumber,
 							rd.simulatedIPAddress,
@@ -195,9 +210,11 @@ public class Router {
 			if (ports[i] != null) {
 				try {
 					/** The process of step 2 (client side) **/
+					//System.out.println("Client tried to receive stuff");
 					// client try receives the packet from the server
 					ObjectInputStream inStreamFromServer = new ObjectInputStream(
 							clients[i].getInputStream());
+				
 					SOSPFPacket packetFromServer = (SOSPFPacket) inStreamFromServer
 							.readObject();
 
@@ -341,7 +358,9 @@ class ServerServiceThread implements Runnable {
 	Link[] m_ports;
 	SOSPFPacket packet;
 	RouterDescription routerDesc;
-	
+	ServerInputOutput serverResponse;
+	boolean flag = true;
+	int portNum = 0;
 	public ServerServiceThread() {
 		super();
 	}
@@ -378,19 +397,28 @@ class ServerServiceThread implements Runnable {
 				try {
 					Socket newSocket;
 					//Socket newSocket = sServer.accept();
-					if (canAcceptIncomingConnection()) {
+					if (this.flag && this.portNum < 4) {
 						// Accept incoming connections.
 						newSocket = sServer.accept();
+						this.portNum = this.portNum + 1;
 						System.out.println("The client with Ip Address "
 								+ newSocket.getRemoteSocketAddress()
 								+ " just connected to you.");
 						// invoke an objectInput thread
 
-						ServerInputOutput serverResponse = new ServerInputOutput(
+						serverResponse = new ServerInputOutput(
 								newSocket, routerDesc, m_ports);
-						serverResponseThread = new Thread(serverResponse);
-
-						serverResponseThread.start();
+						this.flag = serverResponse.canAcceptIncomingConnection();
+						if (this.flag) {
+							serverResponseThread = new Thread(serverResponse);
+							serverResponseThread.start();
+						}
+						else {
+							
+							System.out.println("Ports are full");
+							newSocket.close();
+							break;
+						}
 					}
 					else {
 						
@@ -435,7 +463,7 @@ class ServerInputOutput implements Runnable {
 		// get the number from the client side
 
 	}
-	private boolean canAcceptIncomingConnection() {
+	public boolean canAcceptIncomingConnection() {
 		for(int i =0; i< mm_ports.length; i++){
 			if(mm_ports[i] != null){
 				continue;
@@ -547,8 +575,8 @@ class ServerInputOutput implements Runnable {
 			 
 				}//flag ends
 				else {
+					//Exception e = new Exception("Cannot receive message from client because ports are full");
 					System.out.println("Cannot receive message from client because ports are full");
-					//throw e;
 					break;
 				}
 
