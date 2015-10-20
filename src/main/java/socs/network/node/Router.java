@@ -140,6 +140,7 @@ public class Router {
 					
 
 				} else {
+					clients[isAvail].close();
 					clients[isAvail] = null;
 					System.out.println("Could not make the connection. Check if the server's ports are full or server socket is open");
 				}
@@ -207,7 +208,7 @@ public class Router {
 		}// end the for loop
 		// now try to receive the packets
 		for (int i = 0; i < ports.length; i++) {
-			if (ports[i] != null) {
+			if (ports[i] != null && ports[i].router2.status != RouterStatus.TWO_WAY) {
 				try {
 					/** The process of step 2 (client side) **/
 					//System.out.println("Client tried to receive stuff");
@@ -289,8 +290,10 @@ public class Router {
 		// find all the links of the node and print the IP address of the links
 		for (int i = 0; i < ports.length; i++) {
 			if (ports[i] != null) {
-				System.out.println("IP Address of the neighbor " + (i + 1)
-						+ ": " + ports[i].router2.simulatedIPAddress);
+				if(ports[i].router2.status == RouterStatus.TWO_WAY) {
+					System.out.println("IP Address of the neighbor " + (i + 1)
+							+ ": " + ports[i].router2.simulatedIPAddress);
+				}
 			}
 		}
 	}
@@ -378,17 +381,6 @@ class ServerServiceThread implements Runnable {
 		}
 
 	}
-	private boolean canAcceptIncomingConnection() {
-		for(int i =0; i< m_ports.length; i++){
-			if(m_ports[i] != null){
-				continue;
-			}else{
-				return true;
-			}
-		}
-		return false;
-	}
-	
 
 	public void run() {
 		Thread serverResponseThread = null;
@@ -468,7 +460,6 @@ class ServerInputOutput implements Runnable {
 			if(mm_ports[i] != null){
 				continue;
 			}else{
-				System.out.println("valid index " +i);
 				return true;
 			}
 		}
@@ -582,12 +573,12 @@ class ServerInputOutput implements Runnable {
 
 			} catch (IOException e) {
 				System.out.println("Cannot receive input object. Quit");
+				break;
 			} catch (ClassNotFoundException ce) {
 
 				System.out.println("Packet cannot be found");
 
 			} catch (Exception e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 
