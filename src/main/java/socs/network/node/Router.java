@@ -170,7 +170,7 @@ public class Router {
 		// create 4 packets for each neighbor
 		for (int i = 0; i < ports.length; i++) {
 
-			if (this.ports[i] != null) {
+			if (this.ports[i] != null && ports[i].router2.status != RouterStatus.TWO_WAY) {
 
 //				System.out.println("There exists a valid port " + i);
 //				System.out.println("router 1: " + ports[i].router1.simulatedIPAddress + " router 2: " +
