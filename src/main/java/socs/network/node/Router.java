@@ -170,11 +170,7 @@ public class Router {
 					
 
 				} else {
-<<<<<<< HEAD
 					
-=======
-					clients[isAvail].close();
->>>>>>> efd502fe633bdc31fd3fc6a8c853a21584ed6e25
 					clients[isAvail] = null;
 					clients[isAvail].close();
 					System.out.println("Could not make the connection. Check if the server's ports are full or server socket is open");
@@ -227,7 +223,6 @@ public class Router {
 			
 				if (this.potentialNeighbors[i] != null) {
 
-<<<<<<< HEAD
 					if (this.potentialNeighbors[i].router2.status == null) {
 						try {
 							if (clients[i] == null) {
@@ -235,9 +230,6 @@ public class Router {
 										potentialNeighbors[i].router2.processIPAddress,
 										potentialNeighbors[i].router2.processPortNumber);
 								//clients[i].setSoTimeout(1000);
-=======
-			if (this.ports[i] != null && ports[i].router2.status != RouterStatus.TWO_WAY) {
->>>>>>> efd502fe633bdc31fd3fc6a8c853a21584ed6e25
 
 							}
 							/** step 1 **/
@@ -300,7 +292,6 @@ public class Router {
 		
 		
 		// now try to receive the packets
-<<<<<<< HEAD
 		for (int i = 0; i < potentialNeighbors.length; i++) {
 			if (potentialNeighbors[i] != null) {
 				if (potentialNeighbors[i].router2.status == null) {
@@ -338,41 +329,6 @@ public class Router {
 											break;
 										}
 									}
-=======
-		for (int i = 0; i < ports.length; i++) {
-			if (ports[i] != null && ports[i].router2.status != RouterStatus.TWO_WAY) {
-				try {
-					/** The process of step 2 (client side) **/
-					//System.out.println("Client tried to receive stuff");
-					// client try receives the packet from the server
-					ObjectInputStream inStreamFromServer = new ObjectInputStream(
-							clients[i].getInputStream());
-				
-					SOSPFPacket packetFromServer = (SOSPFPacket) inStreamFromServer
-							.readObject();
-
-					// packet received
-					if (packetFromServer.sospfType == 0) {
-						// Client prints the HELLO message from server
-						System.out.println("received HELLO from "
-								+ packetFromServer.neighborID + "; ");
-
-						// set the link to TWO_WAY
-
-						for (int j = 0; j < 4; j++) {
-							// find the Link that matched the packet information
-
-							if (this.ports[j] != null) {
-								if (ports[j].router2.simulatedIPAddress
-										.equals(packetFromServer.neighborID)) {
-									ports[j].router2.status = RouterStatus.TWO_WAY;
-									System.out
-											.println("set "
-													+ ports[j].router2.simulatedIPAddress
-													+ " state to "
-													+ ports[j].router2.status);
-									break;
->>>>>>> efd502fe633bdc31fd3fc6a8c853a21584ed6e25
 								}
 								/** The process of step 3 (client confirmation) **/
 
@@ -476,17 +432,9 @@ public class Router {
 	private void processNeighbors() {
 		// find all the links of the node and print the IP address of the links
 		for (int i = 0; i < ports.length; i++) {
-<<<<<<< HEAD
 			if (ports[i] != null && ports[i].router2.status.equals(RouterStatus.TWO_WAY)) {
 				System.out.println("IP Address of the neighbor " + (i + 1)
 						+ ": " + ports[i].router2.simulatedIPAddress);
-=======
-			if (ports[i] != null) {
-				if(ports[i].router2.status == RouterStatus.TWO_WAY) {
-					System.out.println("IP Address of the neighbor " + (i + 1)
-							+ ": " + ports[i].router2.simulatedIPAddress);
-				}
->>>>>>> efd502fe633bdc31fd3fc6a8c853a21584ed6e25
 			}
 		}
 	}
@@ -573,7 +521,6 @@ class ServerServiceThread implements Runnable {
 		}
 
 	}
-<<<<<<< HEAD
 	
 	private boolean canAcceptIncomingConnection() {
 		for(int i =0; i< m_ports.length; i++){
@@ -587,8 +534,6 @@ class ServerServiceThread implements Runnable {
 	}
 
 	
-=======
->>>>>>> efd502fe633bdc31fd3fc6a8c853a21584ed6e25
 
 	public void run() {
 		Thread serverResponseThread = null;
@@ -680,10 +625,7 @@ class ServerInputOutput implements Runnable {
 			if(mm_ports[i] != null){
 				continue;
 			}else{
-<<<<<<< HEAD
 				//System.out.println("valid index " +i);
-=======
->>>>>>> efd502fe633bdc31fd3fc6a8c853a21584ed6e25
 				return true;
 			}
 		}
@@ -815,7 +757,6 @@ class ServerInputOutput implements Runnable {
 
 			} catch (IOException e) {
 				System.out.println("Cannot receive input object. Quit");
-<<<<<<< HEAD
 				
 				//System.out.println(server.getRemoteSocketAddress());
 				
@@ -850,14 +791,13 @@ class ServerInputOutput implements Runnable {
 				
 				
 				
-=======
->>>>>>> efd502fe633bdc31fd3fc6a8c853a21584ed6e25
 				break;
 			} catch (ClassNotFoundException ce) {
 
 				System.out.println("Packet cannot be found");
 
 			} catch (Exception e1) {
+				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 
