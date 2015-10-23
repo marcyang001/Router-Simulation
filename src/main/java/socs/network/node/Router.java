@@ -9,9 +9,16 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.lang.Object;
 
 public class Router {
 
@@ -20,6 +27,8 @@ public class Router {
 	// assuming that all routers are with 4 ports
 	Integer validPortNum = 0;
 	Link[] ports = new Link[4];
+	Link[] potentialNeighbors = new Link[4];
+	
 	Socket[] clients = new Socket[4];
 	ServerServiceThread serThread;
 
@@ -59,7 +68,7 @@ public class Router {
 	 * 
 	 */
 	private void initServerSocket(short processPort) {
-		serThread = new ServerServiceThread(processPort, rd, ports);
+		serThread = new ServerServiceThread(processPort, rd, ports, potentialNeighbors);
 		Thread t = new Thread(serThread);
 		t.start();
 
@@ -73,13 +82,13 @@ public class Router {
 	 *         slot
 	 * 
 	 */
-	private int isRouterPortAlreadyTaken(String simIPAddr, String mySimIPAddr) {
-		for (int i = 0; i < ports.length; i++) {
-			if (ports[i] != null) {
-				if ((ports[i].router2.simulatedIPAddress.equals(simIPAddr) && 
-						ports[i].router1.simulatedIPAddress.equals(mySimIPAddr)) ||
-						(ports[i].router1.simulatedIPAddress.equals(simIPAddr) && 
-								ports[i].router2.simulatedIPAddress.equals(mySimIPAddr)))	{
+	private int isRouterPortAlreadyTaken(String simIPAddr, String mySimIPAddr, Link[] p) {
+		for (int i = 0; i < p.length; i++) {
+			if (p[i] != null) {
+				if ((p[i].router2.simulatedIPAddress.equals(simIPAddr) && 
+						p[i].router1.simulatedIPAddress.equals(mySimIPAddr)) ||
+						(p[i].router1.simulatedIPAddress.equals(simIPAddr) && 
+								p[i].router2.simulatedIPAddress.equals(mySimIPAddr)))	{
 					return -1;
 				} else {
 					continue;
@@ -89,6 +98,17 @@ public class Router {
 			}
 		}
 		return -1;
+	}
+	
+	public boolean canAcceptIncomingConnection() {
+		for(int i =0; i< ports.length; i++){
+			if(ports[i] != null){
+				continue;
+			}else{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -114,14 +134,11 @@ public class Router {
 		// Start a Client Service thread
 		// router 1 = localhost
 		// router 2 = router you are sending to
-		int isAvail = isRouterPortAlreadyTaken(simulatedIP, rd.simulatedIPAddress);
+		int isAvail = isRouterPortAlreadyTaken(simulatedIP, rd.simulatedIPAddress, potentialNeighbors);
 		validPortNum = isAvail;
 		if (isAvail >= 0) {
 
-			// cliThread = new ClientServiceThread(rd, processIP, processPort,
-			// simulatedIP);
-			// Thread t = new Thread(cliThread);
-			// t.start();
+			
 			// router 1 = localhost
 			// router 2 = router you are sending to
 			try {
@@ -129,18 +146,33 @@ public class Router {
 				clients[isAvail].setSoTimeout(2000);
 				if (clients[isAvail].isConnected()) {
 					System.out.println("Just connected to " + simulatedIP);
-
+					
+					//add to potential neighbors
+					
+					
+					
 					RouterDescription r2 = new RouterDescription(processIP,
 							processPort, simulatedIP);
+					
 					RouterDescription r1 = new RouterDescription(
 							rd.processIPAddress, rd.processPortNumber,
 							rd.simulatedIPAddress);
 					Link l = new Link(r1, r2);
-					ports[isAvail] = l;
+					//ports[isAvail] = l;
+					
+					
+				
+					//System.out.println("Potential links updated in the client");
+					//System.out.println("Link client: "+r2.simulatedIPAddress );
+					potentialNeighbors[isAvail] = l;
+					
+					
 					
 
 				} else {
+					
 					clients[isAvail] = null;
+					clients[isAvail].close();
 					System.out.println("Could not make the connection. Check if the server's ports are full or server socket is open");
 				}
 			} catch (ConnectException e) {
@@ -165,109 +197,221 @@ public class Router {
 	 * @throws UnknownHostException
 	 */
 	private void processStart() {
-
-		// create 4 packets for each neighbor
-		for (int i = 0; i < ports.length; i++) {
-
-			if (this.ports[i] != null) {
-
-//				System.out.println("There exists a valid port " + i);
-//				System.out.println("router 1: " + ports[i].router1.simulatedIPAddress + " router 2: " +
-//						ports[i].router2.simulatedIPAddress + " rd simIP: "+ rd.simulatedIPAddress);
-				try {
-					if (clients[i] == null) {
-						clients[i] = new Socket(
-								ports[i].router2.processIPAddress,
-								ports[i].router2.processPortNumber);
-						clients[i].setSoTimeout(1000);
-					
-					}
-					/** step 1 **/
-					// client sends the packet to the server
-					ObjectOutputStream outStreamToServer = new ObjectOutputStream(
-							clients[i].getOutputStream());
-					
-					SOSPFPacket clientPacket = new SOSPFPacket(
-							rd.processIPAddress, rd.processPortNumber,
-							rd.simulatedIPAddress,
-							ports[i].router2.simulatedIPAddress, (short) 0,
-							rd.simulatedIPAddress, rd.simulatedIPAddress);
-
-					outStreamToServer.writeObject(clientPacket);
-
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					System.out.println("Client cannot send to the object to the server ");
-				}
-
-			} else {
-				break;
+		
+		int potential = 0;
+		int portNum;
+		int real = 0; 
+		//check how many real links already established
+		for (portNum = 0; portNum < 4; portNum++) {
+			if (this.ports[portNum] != null) {
+				real++;
 			}
-
-		}// end the for loop
-		// now try to receive the packets
-		for (int i = 0; i < ports.length; i++) {
-			if (ports[i] != null) {
-				try {
-					/** The process of step 2 (client side) **/
-					//System.out.println("Client tried to receive stuff");
-					// client try receives the packet from the server
-					ObjectInputStream inStreamFromServer = new ObjectInputStream(
-							clients[i].getInputStream());
-				
-					SOSPFPacket packetFromServer = (SOSPFPacket) inStreamFromServer
-							.readObject();
-
-					// packet received
-					if (packetFromServer.sospfType == 0) {
-						// Client prints the HELLO message from server
-						System.out.println("received HELLO from "
-								+ packetFromServer.neighborID + "; ");
-
-						// set the link to TWO_WAY
-
-						for (int j = 0; j < 4; j++) {
-							// find the Link that matched the packet information
-
-							if (this.ports[j] != null) {
-								if (ports[j].router2.simulatedIPAddress
-										.equals(packetFromServer.neighborID)) {
-									ports[j].router2.status = RouterStatus.TWO_WAY;
-									System.out
-											.println("set "
-													+ ports[j].router2.simulatedIPAddress
-													+ " state to "
-													+ ports[j].router2.status);
-									break;
-								}
-							}
-						}
-
-					} else {
-						System.out.println("Client did not receive a return message from the server");
-
-					}
-
-					/** The process of step 3 (client confirmation) **/
-	
-					SOSPFPacket responsePacket = new SOSPFPacket(
-							rd.processIPAddress, rd.processPortNumber,
-							rd.simulatedIPAddress,
-							ports[i].router2.simulatedIPAddress, (short) 0,
-							rd.simulatedIPAddress, rd.simulatedIPAddress);
-					ObjectOutputStream confirmPacket = new ObjectOutputStream(
-							clients[i].getOutputStream());
-					confirmPacket.writeObject(responsePacket);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ClassNotFoundException e) {
-					System.out.println("Client cannot receive the packet from server");
-				}
+			if (this.potentialNeighbors[portNum] != null) {
+				potential++;
 			}
 		}
+		System.out.println("real neighbors: " + real);
+		System.out.println("potential neighbors: " + potential);
+		//System.out.println("ENTER HERE 1 !!!!");
+		
+		/**compare the real links with the potential links if the potential links is updated, then broadcast again, else stay idle**/
+		if (potential > real) {
+			ArrayList<Link> deleteLinks = new ArrayList<Link>();
+			//System.out.println("ENTER HERE 2");
+		// create 4 packets for each neighbor
+		for (int i = 0; i < potentialNeighbors.length; i++) {
+			
+				if (this.potentialNeighbors[i] != null) {
 
-	}
+					if (this.potentialNeighbors[i].router2.status == null) {
+						try {
+							if (clients[i] == null) {
+								clients[i] = new Socket(
+										potentialNeighbors[i].router2.processIPAddress,
+										potentialNeighbors[i].router2.processPortNumber);
+								//clients[i].setSoTimeout(1000);
+
+							}
+							/** step 1 **/
+							//System.out.println("START TO SEND PACKET");
+							// client sends the packet to the server
+							ObjectOutputStream outStreamToServer = new ObjectOutputStream(
+									clients[i].getOutputStream());
+
+							SOSPFPacket clientPacket = new SOSPFPacket(
+									rd.processIPAddress,
+									rd.processPortNumber,
+									rd.simulatedIPAddress,
+									potentialNeighbors[i].router2.simulatedIPAddress,
+									(short) 0, rd.simulatedIPAddress,
+									rd.simulatedIPAddress);
+
+							outStreamToServer.writeObject(clientPacket);
+
+						}
+						catch (SocketTimeoutException st) {
+							//if its socket timeout, delete the link from potential neighbors
+							
+							//potentialNeighbors[i] = null;
+							//for (int j = i; i < potentialNeighbors.length-1; j++) {
+							//	potentialNeighbors[j] = potentialNeighbors[j+1];
+							//}
+							//potentialNeighbors[potentialNeighbors.length-1] = null;
+							
+							//potentialNeighbors[i] = null;
+							//List<Link> list = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
+							//list.removeAll(Arrays.asList(potentialNeighbors[i]));
+							//potentialNeighbors = list.toArray(potentialNeighbors);
+							deleteLinks.add(potentialNeighbors[i]);
+							
+						}
+						catch (IOException e) {
+							// TODO Auto-generated catch block
+							System.out
+									.println("Client cannot send to the object to the server " + potentialNeighbors[i].router2.simulatedIPAddress);
+							//potentialNeighbors[i] = null;
+							//List<Link> list = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
+							//list.removeAll(Arrays.asList(potentialNeighbors[i]));
+							//potentialNeighbors = list.toArray(potentialNeighbors);
+							
+							
+							
+							deleteLinks.add(potentialNeighbors[i]);
+							
+							
+							
+							
+						}
+					}
+				} else {
+					break;
+				}
+
+		}// end the for loop
+		
+		
+		
+		// now try to receive the packets
+		for (int i = 0; i < potentialNeighbors.length; i++) {
+			if (potentialNeighbors[i] != null) {
+				if (potentialNeighbors[i].router2.status == null) {
+						try {
+							/** The process of step 2 (client side) **/
+							// System.out.println("Client tried to receive stuff");
+							// client try receives the packet from the server
+							ObjectInputStream inStreamFromServer = new ObjectInputStream(
+									clients[i].getInputStream());
+
+							SOSPFPacket packetFromServer = (SOSPFPacket) inStreamFromServer
+									.readObject();
+
+							// packet received
+							if (packetFromServer.sospfType == 0) {
+								// Client prints the HELLO message from server
+								System.out.println("received HELLO from "
+										+ packetFromServer.neighborID + "; ");
+
+								// set the link to TWO_WAY
+
+								for (int j = 0; j < 4; j++) {
+									// find the Link that matched the packet
+									// information
+
+									if (this.potentialNeighbors[j].router2 != null) {
+										if (potentialNeighbors[j].router2.simulatedIPAddress
+												.equals(packetFromServer.neighborID)) {
+											potentialNeighbors[j].router2.status = RouterStatus.TWO_WAY;
+											System.out
+													.println("set "
+															+ potentialNeighbors[j].router2.simulatedIPAddress
+															+ " state to "
+															+ potentialNeighbors[j].router2.status);
+											break;
+										}
+									}
+								}
+								/** The process of step 3 (client confirmation) **/
+
+								SOSPFPacket responsePacket = new SOSPFPacket(
+										rd.processIPAddress,
+										rd.processPortNumber,
+										rd.simulatedIPAddress,
+										potentialNeighbors[i].router2.simulatedIPAddress,
+										(short) 0, rd.simulatedIPAddress,
+										rd.simulatedIPAddress);
+								ObjectOutputStream confirmPacket = new ObjectOutputStream(
+										clients[i].getOutputStream());
+								confirmPacket.writeObject(responsePacket);
+
+								// the potential neighbors link becomes real
+								// neighbors
+								// RouterDescription r2 = new
+								// RouterDescription(potentialNeighbors.get(i).processIPAddress,
+								// potentialNeighbors.get(i).processPortNumber,
+								// potentialNeighbors.get(i).simulatedIPAddress);
+
+								// RouterDescription r1 = new RouterDescription(
+								// rd.processIPAddress, rd.processPortNumber,
+								// rd.simulatedIPAddress);
+								// Link l = new Link(r1, r2);
+								ports[i] = potentialNeighbors[i];
+								
+
+							} else {
+								System.out
+										.println("Client did not receive a return message from the server");
+
+							}
+						
+						}
+						catch (SocketTimeoutException st) {
+							//if its socket timeout, delete the link from potential neighbors
+							System.out.println("Server ports are full, cannot send packets");
+							
+							//delete the link from potential neighbors
+							List<Link> list = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
+							list.remove(Arrays.asList(potentialNeighbors[i]));
+							potentialNeighbors = list.toArray(potentialNeighbors);
+							
+							
+						}
+						catch (IOException e) {
+							// TODO Auto-generated catch block
+							
+							List<Link> list = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
+							list.remove(Arrays.asList(potentialNeighbors[i]));
+							potentialNeighbors = list.toArray(potentialNeighbors);
+							System.out.println("FAIL to receive connection from the server");
+						} catch (ClassNotFoundException e) {
+							System.out
+									.println("Client cannot receive the packet from server");
+						}
+						
+					}
+			}
+			
+		}//end the for loop
+		
+		//remove the invalid neighbors if there are any
+				if (deleteLinks.size() > 0) {
+					
+					for (int i = 0; i < deleteLinks.size(); i++) {
+							
+						List<Link> list = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
+						list.removeAll(Arrays.asList(deleteLinks.get(i)));
+						potentialNeighbors = list.toArray(potentialNeighbors);
+					}
+						
+				}
+		
+		
+		}//end the check here 
+		else {
+			System.out.println("No more potential links. Real = Potential");
+			
+		}
+		
+	}//end the start method 
 
 	/**
 	 * attach the link to the remote router, which is identified by the given
@@ -288,7 +432,7 @@ public class Router {
 	private void processNeighbors() {
 		// find all the links of the node and print the IP address of the links
 		for (int i = 0; i < ports.length; i++) {
-			if (ports[i] != null) {
+			if (ports[i] != null && ports[i].router2.status.equals(RouterStatus.TWO_WAY)) {
 				System.out.println("IP Address of the neighbor " + (i + 1)
 						+ ": " + ports[i].router2.simulatedIPAddress);
 			}
@@ -318,14 +462,11 @@ public class Router {
 				} else if (command.startsWith("quit")) {
 					processQuit();
 				} else if (command.startsWith("attach ")) {
-
-					if (validPortNum < 0) {
-						System.out.println("The router's ports are full");
-					} else {
-						String[] cmdLine = command.split(" ");
-						processAttach(cmdLine[1], Short.parseShort(cmdLine[2]),
-								cmdLine[3], Short.parseShort(cmdLine[4]));
-					}
+	
+					String[] cmdLine = command.split(" ");
+					processAttach(cmdLine[1], Short.parseShort(cmdLine[2]), 
+							cmdLine[3], Short.parseShort(cmdLine[4]));
+					
 
 				} else if (command.equals("start")) {
 					processStart();
@@ -356,19 +497,21 @@ public class Router {
 class ServerServiceThread implements Runnable {
 	ServerSocket sServer;
 	Link[] m_ports;
+	Link[] m_potentialNeighbors;
+	ArrayList<SocketAddress> socketAddr = new ArrayList<SocketAddress>();
 	SOSPFPacket packet;
 	RouterDescription routerDesc;
 	ServerInputOutput serverResponse;
 	boolean flag = true;
 	int portNum = 0;
-	public ServerServiceThread() {
-		super();
-	}
+	
 
 	public ServerServiceThread(short portNum, RouterDescription rd,
-			Link[] ports) {
+			Link[] ports, Link[] potentialNeighbors) {
+			
 		try {
 			this.m_ports = ports;
+			this.m_potentialNeighbors = potentialNeighbors;
 			sServer = new ServerSocket(portNum);
 			System.out.println("Created a server socket with port number "
 					+ portNum);
@@ -378,6 +521,7 @@ class ServerServiceThread implements Runnable {
 		}
 
 	}
+	
 	private boolean canAcceptIncomingConnection() {
 		for(int i =0; i< m_ports.length; i++){
 			if(m_ports[i] != null){
@@ -388,6 +532,7 @@ class ServerServiceThread implements Runnable {
 		}
 		return false;
 	}
+
 	
 
 	public void run() {
@@ -396,18 +541,25 @@ class ServerServiceThread implements Runnable {
 			if (sServer != null) {
 				try {
 					Socket newSocket;
+					this.flag = canAcceptIncomingConnection();
 					//Socket newSocket = sServer.accept();
-					if (this.flag && this.portNum < 4) {
+					if (this.flag && socketAddr.size() < 4) {
 						// Accept incoming connections.
 						newSocket = sServer.accept();
-						this.portNum = this.portNum + 1;
+						
+						synchronized (this) {
+							if (!socketAddr.contains(newSocket.getRemoteSocketAddress())) {
+								socketAddr.add(newSocket.getRemoteSocketAddress());
+							}
+						}
+						//this.portNum = this.portNum + 1;
 						System.out.println("The client with Ip Address "
 								+ newSocket.getRemoteSocketAddress()
 								+ " just connected to you.");
 						// invoke an objectInput thread
 
 						serverResponse = new ServerInputOutput(
-								newSocket, routerDesc, m_ports);
+								newSocket, routerDesc, m_ports, m_potentialNeighbors, socketAddr);
 						this.flag = serverResponse.canAcceptIncomingConnection();
 						if (this.flag) {
 							serverResponseThread = new Thread(serverResponse);
@@ -416,7 +568,7 @@ class ServerServiceThread implements Runnable {
 						else {
 							
 							System.out.println("Ports are full");
-							newSocket.close();
+							sServer.close();
 							break;
 						}
 					}
@@ -453,13 +605,18 @@ class ServerInputOutput implements Runnable {
 	ObjectInputStream confirm;
 	RouterDescription serverRouter;
 	Link[] mm_ports;
+	Link[] mm_potentialNeighbors;
+	ArrayList<SocketAddress> mm_socketAddr;
 	boolean flag;
 	public ServerInputOutput(Socket server, RouterDescription serverRouter,
-			Link[] ports) {
+			Link[] ports, Link[] m_potentialNeighbors, ArrayList<SocketAddress> socketAddr) {
 		this.server = server;
 		this.serverRouter = serverRouter;
 		this.mm_ports = ports;
+		this.mm_potentialNeighbors = m_potentialNeighbors;
 		flag = canAcceptIncomingConnection();
+		this.mm_socketAddr = socketAddr;
+
 		// get the number from the client side
 
 	}
@@ -468,7 +625,7 @@ class ServerInputOutput implements Runnable {
 			if(mm_ports[i] != null){
 				continue;
 			}else{
-				System.out.println("valid index " +i);
+				//System.out.println("valid index " +i);
 				return true;
 			}
 		}
@@ -476,7 +633,8 @@ class ServerInputOutput implements Runnable {
 	}
 
 	public void run() {
-		int nextAvail = 0;
+		int nextAvailPort = 0;
+		int nextAvailNeighbor = 0;
 		
 		while (true) {
 			
@@ -499,11 +657,15 @@ class ServerInputOutput implements Runnable {
 						// +
 						// " packet router id: " + packetFromClient.routerID);
 
-						nextAvail = isRouterPortAlreadyTaken(
+						nextAvailPort = isRouterPortAlreadyTaken(
 								packetFromClient.neighborID,
-								serverRouter.simulatedIPAddress);
-						// System.out.println("isrouterporttaken " + nextAvail);
-						if (nextAvail >= 0) {
+								serverRouter.simulatedIPAddress, this.mm_ports);
+						nextAvailNeighbor = isRouterPortAlreadyTaken(
+								packetFromClient.neighborID,
+								serverRouter.simulatedIPAddress, this.mm_potentialNeighbors);
+						
+						//System.out.println("isrouterporttaken " + nextAvailPort);
+						if (nextAvailPort >= 0) {
 							// add to the server link
 							// Router 2 is the client/sender IP --> look into
 							// the packet
@@ -518,8 +680,18 @@ class ServerInputOutput implements Runnable {
 									serverRouter.processPortNumber,
 									serverRouter.simulatedIPAddress);
 							Link l = new Link(r1, r2);
-							mm_ports[nextAvail] = l;
-
+							mm_ports[nextAvailPort] = l;
+							//if the user did not do attach in this host 
+							if (nextAvailNeighbor >= 0) {
+								
+								mm_potentialNeighbors[nextAvailNeighbor] = l;
+							}
+							//if the user did attach previously, we should override that because that was not determined
+							else {
+								mm_potentialNeighbors[nextAvailPort] = l;
+							}
+							
+							
 							System.out.println("set " + r2.simulatedIPAddress
 									+ " state to " + r2.status);
 
@@ -536,12 +708,13 @@ class ServerInputOutput implements Runnable {
 									packetFromClient.neighborID, (short) 0,
 									serverRouter.simulatedIPAddress,
 									serverRouter.simulatedIPAddress);
-							// System.out.println("server packet: " +
-							// serverPacket.neighborID);
+						
+							
 							outStream.writeObject(serverPacket);
 
 						} else {
 							// second hello
+
 							for (int i = 0; i < mm_ports.length; i++) {
 								// scan through the links
 								if (mm_ports[i].router2.simulatedIPAddress
@@ -556,6 +729,7 @@ class ServerInputOutput implements Runnable {
 									break;
 								}
 							}
+							
 
 							// send back the package again
 
@@ -569,7 +743,8 @@ class ServerInputOutput implements Runnable {
 									serverRouter.simulatedIPAddress,
 									serverRouter.simulatedIPAddress);
 							outAgain.writeObject(anotherServerPacket);
-
+							
+							
 						}
 					}
 			 
@@ -582,6 +757,41 @@ class ServerInputOutput implements Runnable {
 
 			} catch (IOException e) {
 				System.out.println("Cannot receive input object. Quit");
+				
+				//System.out.println(server.getRemoteSocketAddress());
+				
+				//find the link in the potential Neighbor and Neighbor, then delete it in both arrays
+				for (int i = 0; i < mm_socketAddr.size(); i++) {
+					
+					if (mm_socketAddr.get(i) != null) {
+						System.out.println(mm_socketAddr.get(i));
+						if (mm_socketAddr.get(i).equals(server.getRemoteSocketAddress())) {
+							
+							
+							System.out.println(i);
+							
+							mm_potentialNeighbors[i] = null;
+							List<Link> list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));	
+							
+							list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
+							list.remove(Arrays.asList(mm_potentialNeighbors[i]));
+							mm_potentialNeighbors = list.toArray(mm_potentialNeighbors);
+							
+							mm_ports[i] = null;
+							List<Link> list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
+							list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
+							list1.remove(Arrays.asList(mm_ports[i]));
+							mm_ports = list1.toArray(mm_ports);
+								
+							
+							mm_socketAddr.remove(i);
+						}	
+					}
+				}
+				
+				
+				
+				break;
 			} catch (ClassNotFoundException ce) {
 
 				System.out.println("Packet cannot be found");
@@ -595,13 +805,13 @@ class ServerInputOutput implements Runnable {
 
 	}
 
-	private int isRouterPortAlreadyTaken(String simIPAddr, String anotherIPAddr) {
-		for (int i = 0; i < mm_ports.length; i++) {
-			if (mm_ports[i] != null) {
-				if ( (mm_ports[i].router2.simulatedIPAddress.equals(simIPAddr) && 
-						mm_ports[i].router1.simulatedIPAddress.equals(anotherIPAddr)) ||
-						(mm_ports[i].router2.simulatedIPAddress.equals(simIPAddr) && 
-								mm_ports[i].router1.simulatedIPAddress.equals(anotherIPAddr))) {
+	private int isRouterPortAlreadyTaken(String simIPAddr, String anotherIPAddr, Link[] mm_p) {
+		for (int i = 0; i < mm_p.length; i++) {
+			if (mm_p[i] != null) {
+				if ( (mm_p[i].router2.simulatedIPAddress.equals(simIPAddr) && 
+						mm_p[i].router1.simulatedIPAddress.equals(anotherIPAddr)) ||
+						(mm_p[i].router2.simulatedIPAddress.equals(simIPAddr) && 
+								mm_p[i].router1.simulatedIPAddress.equals(anotherIPAddr))) {
 					return -1;
 				} else {
 					continue;
