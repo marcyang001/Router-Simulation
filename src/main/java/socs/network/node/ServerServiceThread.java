@@ -10,6 +10,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
 
 import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
@@ -286,7 +287,9 @@ class ServerInputOutput implements Runnable {
 								// router and send it back to client
 								SOSPFPacket serverPacketForUpdate = generateFullPackage(
 										(short) 1, packetFromClient);
-
+								
+								
+								
 								outStream = new ObjectOutputStream(
 										server.getOutputStream());
 
@@ -301,10 +304,11 @@ class ServerInputOutput implements Runnable {
 							
 							
 								String incomingRouterIP = packetFromClient.neighborID;
+								packetFromClient.originalSender = packetFromClient.neighborID;
 								
 								// update the database
 								databaseUpdate(packetFromClient);
-
+								
 								// forward the incoming packet to the neighbors
 								// except to the one that sent it
 								packetFromClient.lsaArray.add(mm_lsa);
@@ -313,17 +317,28 @@ class ServerInputOutput implements Runnable {
 								broadcastToNeighbors(incomingRouterIP,
 									packetFromClient);
 						}
-						else {
+						else if (packetFromClient.sospfType == 2){
 								
 							
-							databaseUpdate(packetFromClient);
+							boolean updated = databaseUpdate(packetFromClient);
 							
 							String originalIncoming = packetFromClient.neighborID;
-							if (packetFromClient.srcProcessPort != serverRouter.processPortNumber) {
+							if (updated) {
 								
 								packetFromClient.neighborID = serverRouter.simulatedIPAddress;
-								//packetFromClient.lsaArray.add(mm_lsa);
+								packetFromClient.lsaArray.add(mm_lsa);
 								broadcastToNeighbors(originalIncoming,packetFromClient);
+								
+							}
+							else {
+								//check if the original sender is one of the neighbor, 
+								//if it is, broadcast again
+								packetFromClient.neighborID = serverRouter.simulatedIPAddress;
+								packetFromClient.lsaArray.add(mm_lsa);
+								packetFromClient.sospfType = 3;
+								checkNeighbor(packetFromClient.originalSender, packetFromClient);
+								
+								
 								
 							}
 							
@@ -394,7 +409,52 @@ class ServerInputOutput implements Runnable {
 
 	}
 	
-	private void databaseUpdate(SOSPFPacket incomingPacket) {
+	private boolean checkNeighbor(String originalSender, SOSPFPacket updatePackage) {
+		// TODO Auto-generated method stub
+		boolean isNeighbor = false;
+		Socket client;
+		ObjectOutputStream outSend;
+		
+		for (int i = 0; i< this.mm_ports.length; i++) {
+			
+			if (mm_ports[i] != null){
+				
+				String neighbor = mm_ports[i].router2.simulatedIPAddress;
+				if (neighbor.equals(originalSender)) {
+					//send the packet back to the original sender
+					try {
+						client = new Socket(mm_ports[i].router2.processIPAddress, mm_ports[i].router2.processPortNumber);
+						outSend = new ObjectOutputStream(
+								client.getOutputStream());
+						outSend.writeObject(updatePackage);
+						
+						
+						//client.close();
+					} catch (UnknownHostException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					
+					isNeighbor = true;
+					break;
+				}
+			}
+		}
+		
+		return isNeighbor;
+	}
+	
+	private boolean databaseUpdate(SOSPFPacket incomingPacket) {
+		
+		boolean flag1 = false;
+		boolean flag2 = false;
+		
+		
+		
 		
 		System.out.println("UPDATING THE DATABASE!!!!!");
 		for (int i = 0; i< incomingPacket.lsaArray.size(); i++) {
@@ -402,21 +462,24 @@ class ServerInputOutput implements Runnable {
 				
 				String sendIP = incomingPacket.lsaArray.get(i).linkStateID;
 				int versionLSA = incomingPacket.lsaArray.get(i).lsaSeqNumber;
+				
 				if (!mm_database._store.containsKey(sendIP)) {
 					mm_database.updateLSA(sendIP, incomingPacket.lsaArray.get(i));
+					flag1 = true;
 					
 				}
 				else if (mm_database._store.containsKey(sendIP) && versionLSA > mm_database._store.get(sendIP).lsaSeqNumber) {
 					mm_database.updateLSA(sendIP, incomingPacket.lsaArray.get(i));
+					flag2 = true;
 				}
-				
-				
-				
 			}
 			
 		}
 		
+		
 		System.out.println(mm_database.toString());
+		
+		return (flag1 || flag2);
 		
 	}
 	
@@ -424,7 +487,7 @@ class ServerInputOutput implements Runnable {
 	
 	private SOSPFPacket generateFullPackage(short type, SOSPFPacket incomingPacket) {
 		
-		
+		System.out.println("PREPARING THE PACKET AND SEND BACK!!!\n\n");
 		
 		//create the package that only contains the LSA of this router
 		SOSPFPacket serverPacketForUpdate = new SOSPFPacket(
@@ -435,9 +498,14 @@ class ServerInputOutput implements Runnable {
 				serverRouter.simulatedIPAddress,
 				serverRouter.simulatedIPAddress, incomingPacket.weight);
 		
-
-		serverPacketForUpdate.lsaArray.add(mm_lsa);
+		//Vector<LSA> clone = (Vector<LSA>)incomingPacket.lsaArray.clone();
+		serverPacketForUpdate.lsaArray = incomingPacket.lsaArray;
 		
+		System.out.println("\n\n\nCURRENT VECTOR HOLDS!!!!!!!!!");
+		System.out.println(serverPacketForUpdate.lsaArray.toString());
+		
+		
+		serverPacketForUpdate.lsaArray.add(mm_lsa);
 		
 		System.out.println(mm_lsa.toString());
 		
@@ -446,6 +514,7 @@ class ServerInputOutput implements Runnable {
 	
 	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
 		//the server has to send the update to all its neighbors execpt for the one that sent the LSA
+		
 		System.out.println("Broadcasting to neighbors");
 		
 		Socket[] clients = new Socket[4];

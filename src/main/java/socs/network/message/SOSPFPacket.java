@@ -30,6 +30,7 @@ public class SOSPFPacket implements Serializable {
   //used by LSAUPDATE
   public Vector<LSA> lsaArray = new Vector();
   public short weight;
+  public String originalSender; //used in broadcasting
   
   //use the package to do message treatment
   public SOSPFPacket(String srcProcessIP, short srcProcessPort, String srcIP, String destIP, short sospfType, 

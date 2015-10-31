@@ -504,13 +504,14 @@ public class Router {
 										
 										
 										//prepare its own package and send back to the server
+										packetFromServerForUpdate.lsaArray.add(lsa);
 										SOSPFPacket backToServerPacket = generateFullPacketUpdate((short) 1, packetFromServerForUpdate);
 										
 										outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
 										outStreamToServer.writeObject(backToServerPacket);
 										
 										//forward the package to its neighbors with its own LSA 
-										packetFromServerForUpdate.lsaArray.add(lsa);
+										//packetFromServerForUpdate.lsaArray.add(lsa);
 										
 										broadcastToNeighbors(packetFromServerForUpdate.neighborID, packetFromServerForUpdate);
 										
