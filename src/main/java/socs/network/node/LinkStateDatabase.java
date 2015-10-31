@@ -3,14 +3,15 @@ package socs.network.node;
 import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
-public class LinkStateDatabase {
+public class LinkStateDatabase implements Serializable{
 
   //linkID => LSAInstance
   HashMap<String, LSA> _store = new HashMap<String, LSA>();
 
-  private RouterDescription rd = null;
+  transient private RouterDescription rd = null;
 
   public LinkStateDatabase(RouterDescription routerDescription) {
     rd = routerDescription;
@@ -24,6 +25,10 @@ public class LinkStateDatabase {
   String getShortestPath(String destinationIP) {
     //TODO: fill the implementation here
     return null;
+  }
+  
+  public RouterDescription getRd() {
+	  return this.rd;
   }
 
   public void updateLSA(String ipAddress, LSA lsa) {

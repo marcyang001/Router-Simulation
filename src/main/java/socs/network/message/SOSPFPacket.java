@@ -28,10 +28,12 @@ public class SOSPFPacket implements Serializable {
   public String neighborID; //(sender's)neighbor's simulated IP address
 
   //used by LSAUPDATE
-  public Vector<LSA> lsaArray = null;
+  public Vector<LSA> lsaArray = new Vector();
+  public short weight;
   
   //use the package to do message treatment
-  public SOSPFPacket(String srcProcessIP, short srcProcessPort, String srcIP, String destIP, short sospfType, String routerID, String neighborID) {
+  public SOSPFPacket(String srcProcessIP, short srcProcessPort, String srcIP, String destIP, short sospfType, 
+		  String routerID, String neighborID, short weight) {
 	  this.srcProcessIP = srcProcessIP;
 	  this.srcProcessPort = srcProcessPort;
 	  this.srcIP = srcIP;
@@ -39,6 +41,7 @@ public class SOSPFPacket implements Serializable {
 	  this.sospfType = sospfType;
 	  this.routerID = routerID;
 	  this.neighborID = neighborID;
+	  this.weight = weight;
   }
   
   
