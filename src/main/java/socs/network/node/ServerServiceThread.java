@@ -311,6 +311,7 @@ class ServerInputOutput implements Runnable {
 								
 								// forward the incoming packet to the neighbors
 								// except to the one that sent it
+								packetFromClient.lsaArray.addAll(mm_database.retrieveLSAs());
 								packetFromClient.lsaArray.add(mm_lsa);
 								
 								// broadcast the update package
@@ -326,6 +327,7 @@ class ServerInputOutput implements Runnable {
 							if (updated) {
 								
 								packetFromClient.neighborID = serverRouter.simulatedIPAddress;
+								packetFromClient.lsaArray.addAll(mm_database.retrieveLSAs());
 								packetFromClient.lsaArray.add(mm_lsa);
 								broadcastToNeighbors(originalIncoming,packetFromClient);
 								
@@ -334,6 +336,7 @@ class ServerInputOutput implements Runnable {
 								//check if the original sender is one of the neighbor, 
 								//if it is, broadcast again
 								packetFromClient.neighborID = serverRouter.simulatedIPAddress;
+								packetFromClient.lsaArray.addAll(mm_database.retrieveLSAs());
 								packetFromClient.lsaArray.add(mm_lsa);
 								packetFromClient.sospfType = 3;
 								checkNeighbor(packetFromClient.originalSender, packetFromClient);
@@ -359,10 +362,8 @@ class ServerInputOutput implements Runnable {
 
 			} catch (IOException e) {
 				System.out.println("Cannot receive input object. Quit");
-				e.printStackTrace();
+				//e.printStackTrace();
 				
-				break;
-				//System.out.println(server.getRemoteSocketAddress());
 				/*
 				//find the link in the potential Neighbor and Neighbor, then delete it in both arrays
 				for (int i = 0; i < mm_socketAddr.size(); i++) {
@@ -393,6 +394,8 @@ class ServerInputOutput implements Runnable {
 					}
 				}
 				*/
+				
+				break;
 				
 				
 				
@@ -504,10 +507,12 @@ class ServerInputOutput implements Runnable {
 		System.out.println("\n\n\nCURRENT VECTOR HOLDS!!!!!!!!!");
 		System.out.println(serverPacketForUpdate.lsaArray.toString());
 		
+		//retrieve all LSA from the database and put them in the packet to sent
 		
+		serverPacketForUpdate.lsaArray = mm_database.retrieveLSAs();
 		serverPacketForUpdate.lsaArray.add(mm_lsa);
 		
-		System.out.println(mm_lsa.toString());
+		//System.out.println(mm_lsa.toString());
 		
 		return serverPacketForUpdate;
 	}

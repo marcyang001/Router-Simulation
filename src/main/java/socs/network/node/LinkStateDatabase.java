@@ -5,6 +5,7 @@ import socs.network.message.LinkDescription;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Vector;
 
 public class LinkStateDatabase implements Serializable{
 
@@ -45,6 +46,19 @@ public class LinkStateDatabase implements Serializable{
     ld.tosMetrics = 0;
     lsa.links.add(ld);
     return lsa;
+  }
+  
+  public Vector<LSA> retrieveLSAs() {
+	  Vector<LSA> lsa = new Vector();
+	  
+	  for (String key: _store.keySet()) {
+		  
+		  lsa.add(_store.get(key));
+	  }
+	  
+	  
+	  return lsa;
+	  
   }
 
 
