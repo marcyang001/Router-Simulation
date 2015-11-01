@@ -8,9 +8,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Vector;
 
 import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
@@ -48,6 +45,7 @@ public class ServerServiceThread implements Runnable {
 
 	}
 	
+	/*
 	private boolean canAcceptIncomingConnection() {
 		int counter = 0;
 		
@@ -60,7 +58,7 @@ public class ServerServiceThread implements Runnable {
 		}
 		return false;
 	}
-
+	 */
 	
 
 	public void run() {
@@ -424,6 +422,7 @@ class ServerInputOutput implements Runnable {
 
 	}
 	
+	@SuppressWarnings({ "resource" })
 	private boolean checkNeighbor(String originalSender, SOSPFPacket updatePackage) {
 		// TODO Auto-generated method stub
 		boolean isNeighbor = false;
@@ -438,13 +437,13 @@ class ServerInputOutput implements Runnable {
 				if (neighbor.equals(originalSender)) {
 					//send the packet back to the original sender
 					try {
+						
 						client = new Socket(mm_ports[i].router2.processIPAddress, mm_ports[i].router2.processPortNumber);
 						outSend = new ObjectOutputStream(
 								client.getOutputStream());
 						outSend.writeObject(updatePackage);
 						
 						
-						//client.close();
 					} catch (UnknownHostException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -513,11 +512,8 @@ class ServerInputOutput implements Runnable {
 				serverRouter.simulatedIPAddress,
 				serverRouter.simulatedIPAddress, incomingPacket.weight);
 		
-		//Vector<LSA> clone = (Vector<LSA>)incomingPacket.lsaArray.clone();
-		serverPacketForUpdate.lsaArray = incomingPacket.lsaArray;
 		
-		//System.out.println("\n\n\nCURRENT VECTOR HOLDS!!!!!!!!!");
-		//System.out.println(serverPacketForUpdate.lsaArray.toString());
+		serverPacketForUpdate.lsaArray = incomingPacket.lsaArray;
 		
 		//retrieve all LSA from the database and put them in the packet to sent
 		

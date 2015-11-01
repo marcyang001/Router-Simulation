@@ -52,7 +52,7 @@ public class LinkStateDatabase implements Serializable{
   }
   
   public Vector<LSA> retrieveLSAs() {
-	  Vector<LSA> lsa = new Vector();
+	  Vector<LSA> lsa = new Vector<LSA>();
 	  
 	  for (String key: _store.keySet()) {
 		  
