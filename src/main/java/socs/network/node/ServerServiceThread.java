@@ -275,7 +275,7 @@ class ServerInputOutput implements Runnable {
 
 							} else {
 								// second hello -- set to TWO_WAY
-								int routerPosition = -1;
+							
 								for (int i = 0; i < mm_ports.length; i++) {
 									// scan through the links
 									if (mm_ports[i].router2.simulatedIPAddress
@@ -285,11 +285,7 @@ class ServerInputOutput implements Runnable {
 										System.out.println("set "
 														+ mm_ports[i].router2.simulatedIPAddress
 														+ " state to "
-														+ mm_ports[i].router2.status);
-
-										routerPosition = i;
-										
-										
+														+ mm_ports[i].router2.status);				
 										
 										break;
 									}
