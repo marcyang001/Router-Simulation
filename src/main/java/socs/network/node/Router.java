@@ -198,7 +198,7 @@ public class Router {
 		
 		ObjectOutputStream outBroadcast;
 		updatePackage.sospfType = 2;
-		
+		Socket broadcastClients[] = new Socket[4];
 
 		for (int i = 0; i< ports.length; i++) {
 			
@@ -207,8 +207,13 @@ public class Router {
 				
 				if (!ports[i].router2.simulatedIPAddress.equals(senderIP)) {
 					//broadcast the new lsa to the neighbors
+					
 					try {
-						outBroadcast = new ObjectOutputStream(clients[i].getOutputStream());
+						broadcastClients[i] = new Socket(
+								ports[i].router2.processIPAddress,
+								ports[i].router2.processPortNumber);
+						
+						outBroadcast = new ObjectOutputStream(broadcastClients[i].getOutputStream());
 						outBroadcast.writeObject(updatePackage);
 						
 					} catch (IOException e) {
@@ -388,10 +393,94 @@ public class Router {
 								
 
 							} else {
+								potentialNeighbors[i].router2.status = RouterStatus.FAIL;
 								System.out.println("Client did not receive a return message from the server");
 								deleteLinks.add(potentialNeighbors[i]);
 
 							}
+							
+							if (ports[i].router2.status == RouterStatus.TWO_WAY) {	
+								//ObjectInputStream inStreamFromServer;
+								
+								try {
+									if (ports[i] != null) {
+										if (clients[i] != null) {
+											inStreamFromServer = new ObjectInputStream(
+													clients[i].getInputStream());
+											//client receives the package from server for update
+											SOSPFPacket packetFromServerForUpdate = (SOSPFPacket) inStreamFromServer.readObject();
+											
+											//ready for link state update
+											if (packetFromServerForUpdate.sospfType == 1) {
+												
+												//try to update the LSA to the database
+												for (int j = 0; j < packetFromServerForUpdate.lsaArray.size(); j++) {
+													
+													if (packetFromServerForUpdate.lsaArray.get(j) != null) {
+														
+														String senderOfLSA = packetFromServerForUpdate.lsaArray.get(j).linkStateID;
+														int versionOfLSA = packetFromServerForUpdate.lsaArray.get(j).lsaSeqNumber;
+														//check if the LSA already existed in the database
+														if (!lsd._store.containsKey(senderOfLSA)) {
+															//update to the database
+															lsd.updateLSA(senderOfLSA, packetFromServerForUpdate.lsaArray.get(j));
+															//System.out.println(packetFromServerForUpdate.lsaArray.get(j).linkStateID);
+														}
+														//LSA already existed, check if its the newest version
+														else if (lsd._store.containsKey(senderOfLSA)) {
+															if (lsd._store.get(senderOfLSA).lsaSeqNumber < versionOfLSA) {
+																lsd.updateLSA(senderOfLSA, packetFromServerForUpdate.lsaArray.get(j));
+															}
+															
+														}
+													}
+													
+												}
+												
+												System.out.println("UPDATED THE DATABASE IN THE CLIENT");
+												System.out.println(lsd.toString());
+												
+												
+												
+												//prepare its own package and send back to the server
+												//packetFromServerForUpdate.lsaArray.add(lsa);
+												SOSPFPacket backToServerPacket = generateFullPacketUpdate((short) 1, packetFromServerForUpdate);
+												
+												outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
+												outStreamToServer.writeObject(backToServerPacket);
+												
+												//forward the package to its neighbors with its own LSA 
+												//packetFromServerForUpdate.lsaArray.add(lsa);
+												
+												broadcastToNeighbors(packetFromServerForUpdate.neighborID, packetFromServerForUpdate);
+												
+											}
+											
+											
+											
+											
+										} else {
+											System.out.println("Client is disconnected");
+											break;
+										}
+									}
+									
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} 
+								catch (ClassNotFoundException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								
+								
+								
+							}
+							else {
+								System.out.println("NOT TWO WAY???");
+							}
+							
 						
 						}
 						catch (SocketTimeoutException st) {
@@ -422,6 +511,8 @@ public class Router {
 						}
 
 					}
+				
+				
 				}
 
 			}// end the for loop
@@ -446,6 +537,7 @@ public class Router {
 			 * 3. broadcast to neighbors
 			 * 4. send back a packet with LSA of client
 			 *  **/
+			/*
 			for (int i = 0; i< ports.length; i++) {
 				
 				if (ports[i] != null) {
@@ -457,10 +549,10 @@ public class Router {
 					}
 						
 						
-						/**
-						 * set the incoming router status to be EXCHANGE
-						 * 
-						 * router receives package from server**/
+						//
+						// set the incoming router status to be EXCHANGE
+						// 
+						// router receives package from server
 						
 					if (ports[i].router2.status == RouterStatus.EXCHANGE) {	
 						ObjectInputStream inStreamFromServer;
@@ -552,7 +644,7 @@ public class Router {
 				
 			}
 				
-				
+			*/	
 				
 				
 		

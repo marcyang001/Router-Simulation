@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
@@ -377,6 +379,35 @@ class ServerInputOutput implements Runnable {
 				System.out.println("Cannot receive input object. Quit");
 				//e.printStackTrace();
 				
+								//find the link in the potential Neighbor and Neighbor, then delete it in both arrays
+								for (int i = 0; i < mm_socketAddr.size(); i++) {
+									
+									if (mm_socketAddr.get(i) != null) {
+										//System.out.println(mm_socketAddr.get(i));
+										if (mm_socketAddr.get(i).equals(server.getRemoteSocketAddress())) {
+											
+											
+											System.out.println(i);
+											
+											mm_potentialNeighbors[i] = null;
+											List<Link> list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));	
+											
+											list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
+											list.remove(Arrays.asList(mm_potentialNeighbors[i]));
+											mm_potentialNeighbors = list.toArray(mm_potentialNeighbors);
+											
+											mm_ports[i] = null;
+											List<Link> list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
+											list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
+											list1.remove(Arrays.asList(mm_ports[i]));
+											mm_ports = list1.toArray(mm_ports);
+												
+											
+											mm_socketAddr.remove(i);
+										}	
+									}
+								}
+								
 				
 				
 				break;

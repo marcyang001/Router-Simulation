@@ -20,15 +20,19 @@ public class LinkStateDatabase implements Serializable{
     _store.put(l.linkStateID, l);
   }
 
+  
+  
+  
+  
+  
+  
   /**
    * output the shortest path from this router to the destination with the given IP address
    */
   String getShortestPath(String destinationIP) {
 	  //TODO: fill the implementation here
 	  
-	  
-	  
-	  
+	    
 	  
 	  return null;
   }
@@ -52,6 +56,9 @@ public class LinkStateDatabase implements Serializable{
     lsa.links.add(ld);
     return lsa;
   }
+
+  
+  
   
   public Vector<LSA> retrieveLSAs() {
 	  Vector<LSA> lsa = new Vector<LSA>();
@@ -60,7 +67,6 @@ public class LinkStateDatabase implements Serializable{
 		  
 		  lsa.add(_store.get(key));
 	  }
-	  
 	  
 	  return lsa;
 	  
