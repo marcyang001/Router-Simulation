@@ -7,7 +7,8 @@ Group member:
 - Marc Yang
 
 
-Need to do: 
+Need to do:
+ 
 * Dijkstra shortest path using linkState database
 * Testing
 * Code review
