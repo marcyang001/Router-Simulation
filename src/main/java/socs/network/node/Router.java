@@ -348,24 +348,6 @@ public class Router {
 									}
 								}
 								
-								
-								
-								/** The process of step 3 (client confirmation) **/
-
-								SOSPFPacket responsePacket = new SOSPFPacket(
-										rd.processIPAddress,
-										rd.processPortNumber,
-										rd.simulatedIPAddress,
-										potentialNeighbors[i].router2.simulatedIPAddress,
-										(short) 0, rd.simulatedIPAddress,
-										rd.simulatedIPAddress, potentialNeighbors[i].weight);
-								
-								
-								
-								ObjectOutputStream confirmPacket = new ObjectOutputStream(
-										clients[i].getOutputStream());
-								confirmPacket.writeObject(responsePacket);
-
 								// the potential neighbors link becomes real
 								// neighbors
 								
@@ -378,6 +360,30 @@ public class Router {
 								
 								lsa.links.add(newNeighborLink);
 								lsa.lsaSeqNumber++;
+								
+								
+								/** The process of step 3 (client confirmation) 
+								 * 
+								 * send the packet with LSA of the client
+								 *  **/
+
+								SOSPFPacket responsePacket = new SOSPFPacket(
+										rd.processIPAddress,
+										rd.processPortNumber,
+										rd.simulatedIPAddress,
+										potentialNeighbors[i].router2.simulatedIPAddress,
+										(short) 0, rd.simulatedIPAddress,
+										rd.simulatedIPAddress, potentialNeighbors[i].weight);
+								
+								responsePacket.lsaArray.add(lsa);
+								
+								ObjectOutputStream confirmPacket = new ObjectOutputStream(
+										clients[i].getOutputStream());
+								confirmPacket.writeObject(responsePacket);
+
+								
+								
+								
 								
 								
 
@@ -500,7 +506,7 @@ public class Router {
 										
 										
 										//prepare its own package and send back to the server
-										packetFromServerForUpdate.lsaArray.add(lsa);
+										//packetFromServerForUpdate.lsaArray.add(lsa);
 										SOSPFPacket backToServerPacket = generateFullPacketUpdate((short) 1, packetFromServerForUpdate);
 										
 										outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
@@ -569,9 +575,10 @@ public class Router {
 				rd.simulatedIPAddress, rd.simulatedIPAddress,
 				incomingPacket.weight);
 		
+		serverPacketForUpdate.lsaArray = lsd.retrieveLSAs();
+		serverPacketForUpdate.lsaArray.addAll(incomingPacket.lsaArray);
 		serverPacketForUpdate.lsaArray.add(lsa);
-		//System.out.println("CLIENT's LSA");
-		//System.out.println(lsa.toString());
+		
 		
 		return serverPacketForUpdate;
 				

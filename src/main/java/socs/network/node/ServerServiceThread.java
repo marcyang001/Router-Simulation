@@ -237,7 +237,7 @@ class ServerInputOutput implements Runnable {
 								newLink.tosMetrics = packetFromClient.weight;
 								mm_lsa.links.add(newLink);
 								mm_lsa.lsaSeqNumber++;
-
+								
 								// if the user did not do attach in this host
 								if (nextAvailNeighbor >= 0) {
 
@@ -280,18 +280,21 @@ class ServerInputOutput implements Runnable {
 											.equals(packetFromClient.neighborID)) {
 
 										mm_ports[i].router2.status = RouterStatus.TWO_WAY;
-										System.out
-												.println("set "
+										System.out.println("set "
 														+ mm_ports[i].router2.simulatedIPAddress
 														+ " state to "
 														+ mm_ports[i].router2.status);
 
 										routerPosition = i;
-										System.out.println("router position: "
-												+ routerPosition);
+										
+										
+										
 										break;
 									}
 								}
+								
+								//update the database
+								databaseUpdate(packetFromClient);
 
 								// prepare a packet with LSA of this current
 								// router and send it back to client
@@ -374,36 +377,7 @@ class ServerInputOutput implements Runnable {
 				System.out.println("Cannot receive input object. Quit");
 				//e.printStackTrace();
 				
-				/*
-				//find the link in the potential Neighbor and Neighbor, then delete it in both arrays
-				for (int i = 0; i < mm_socketAddr.size(); i++) {
-					
-					if (mm_socketAddr.get(i) != null) {
-						//System.out.println(mm_socketAddr.get(i));
-						if (mm_socketAddr.get(i).equals(server.getRemoteSocketAddress())) {
-							
-							
-							System.out.println(i);
-							
-							mm_potentialNeighbors[i] = null;
-							List<Link> list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));	
-							
-							list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
-							list.remove(Arrays.asList(mm_potentialNeighbors[i]));
-							mm_potentialNeighbors = list.toArray(mm_potentialNeighbors);
-							
-							mm_ports[i] = null;
-							List<Link> list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
-							list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
-							list1.remove(Arrays.asList(mm_ports[i]));
-							mm_ports = list1.toArray(mm_ports);
-								
-							
-							mm_socketAddr.remove(i);
-						}	
-					}
-				}
-				*/
+				
 				
 				break;
 				
@@ -513,11 +487,12 @@ class ServerInputOutput implements Runnable {
 				serverRouter.simulatedIPAddress, incomingPacket.weight);
 		
 		
-		serverPacketForUpdate.lsaArray = incomingPacket.lsaArray;
+		//serverPacketForUpdate.lsaArray = incomingPacket.lsaArray;
 		
 		//retrieve all LSA from the database and put them in the packet to sent
 		
 		serverPacketForUpdate.lsaArray = mm_database.retrieveLSAs();
+		serverPacketForUpdate.lsaArray.addAll(incomingPacket.lsaArray);
 		serverPacketForUpdate.lsaArray.add(mm_lsa);
 		
 		//System.out.println(mm_lsa.toString());
