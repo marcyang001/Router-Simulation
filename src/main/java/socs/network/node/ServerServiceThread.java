@@ -49,6 +49,8 @@ public class ServerServiceThread implements Runnable {
 	}
 	
 	private boolean canAcceptIncomingConnection() {
+		int counter = 0;
+		
 		for(int i =0; i< m_ports.length; i++){
 			if(m_ports[i] != null){
 				continue;
@@ -67,9 +69,8 @@ public class ServerServiceThread implements Runnable {
 			if (sServer != null) {
 				try {
 					Socket newSocket;
-					this.flag = canAcceptIncomingConnection();
-					//Socket newSocket = sServer.accept();
-					// && socketAddr.size() < 4
+					//this.flag = canAcceptIncomingConnection();
+					
 					if (this.flag) {
 						// Accept incoming connections.
 						newSocket = sServer.accept();
@@ -153,15 +154,27 @@ class ServerInputOutput implements Runnable {
 
 	}
 	public boolean canAcceptIncomingConnection() {
+		boolean status = true;
+		int counter = 0;
 		for(int i =0; i< mm_ports.length; i++){
 			if(mm_ports[i] != null){
+				counter++;
 				continue;
-			}else{
-				//System.out.println("valid index " +i);
-				return true;
+			}
+			else {
+				break;
 			}
 		}
-		return false;
+		if (counter < 5) {
+			status = true;
+		}
+		else {
+			status = false;
+		}
+		
+		
+		
+		return status;
 	}
 
 	public void run() {
@@ -199,8 +212,7 @@ class ServerInputOutput implements Runnable {
 									serverRouter.simulatedIPAddress,
 									this.mm_potentialNeighbors);
 
-							// System.out.println("isrouterporttaken " +
-							// nextAvailPort);
+							
 							if (nextAvailPort >= 0) {
 
 								// add to the server link
@@ -490,7 +502,7 @@ class ServerInputOutput implements Runnable {
 	
 	private SOSPFPacket generateFullPackage(short type, SOSPFPacket incomingPacket) {
 		
-		System.out.println("PREPARING THE PACKET AND SEND BACK!!!\n\n");
+		//System.out.println("PREPARING THE PACKET AND SEND BACK!!!\n\n");
 		
 		//create the package that only contains the LSA of this router
 		SOSPFPacket serverPacketForUpdate = new SOSPFPacket(
@@ -504,8 +516,8 @@ class ServerInputOutput implements Runnable {
 		//Vector<LSA> clone = (Vector<LSA>)incomingPacket.lsaArray.clone();
 		serverPacketForUpdate.lsaArray = incomingPacket.lsaArray;
 		
-		System.out.println("\n\n\nCURRENT VECTOR HOLDS!!!!!!!!!");
-		System.out.println(serverPacketForUpdate.lsaArray.toString());
+		//System.out.println("\n\n\nCURRENT VECTOR HOLDS!!!!!!!!!");
+		//System.out.println(serverPacketForUpdate.lsaArray.toString());
 		
 		//retrieve all LSA from the database and put them in the packet to sent
 		

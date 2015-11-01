@@ -386,8 +386,8 @@ public class Router {
 								
 
 							} else {
-								System.out
-										.println("Client did not receive a return message from the server");
+								System.out.println("Client did not receive a return message from the server");
+								deleteLinks.add(potentialNeighbors[i]);
 
 							}
 						
