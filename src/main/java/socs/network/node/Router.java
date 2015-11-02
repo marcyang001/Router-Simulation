@@ -50,8 +50,7 @@ public class Router {
 	 *            the ip adderss of the destination simulated router
 	 */
 	private void processDetect(String destinationIP) {
-		
-		
+
 		String s = lsd.getShortestPath(destinationIP);
 		System.out.println(s);
 
@@ -70,7 +69,9 @@ public class Router {
 
 	/**
 	 * initialize the the server side socket
-	 * @param lsd 
+	 * @param processPort
+	 * @param lsd
+	 * @param lsa
 	 * 
 	 */
 	private void initServerSocket(short processPort, LinkStateDatabase lsd, LSA lsa) {
@@ -500,7 +501,7 @@ public class Router {
 								
 							}
 							else {
-								System.out.println("NOT TWO WAY");
+								System.out.println("NOT TWO WAY: not connected to " + potentialNeighbors[i].router2.simulatedIPAddress);
 							}
 							
 						
@@ -590,6 +591,7 @@ public class Router {
 	 */
 	private void processConnect(String processIP, short processPort,
 			String simulatedIP, short weight) {
+		
 
 	}
 
