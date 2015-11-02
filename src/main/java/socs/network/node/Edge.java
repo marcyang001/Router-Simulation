@@ -1,0 +1,34 @@
+package socs.network.node;
+
+public class Edge  {
+private final String id; 
+private final String source;
+private final String destination;
+private final int weight; 
+
+	public Edge(String id, String source, String destination, int weight) {
+		this.id = id;
+		this.source = source;
+		this.destination = destination;
+		this.weight = weight;
+	}
+	
+	public String getId() {
+		return id;
+	}
+	public String getDestination() {
+		return destination;
+	}
+	
+	public String getSource() {
+		return source;
+	}
+	public int getWeight() {
+		return weight;
+	}
+	
+	@Override
+	public String toString() {
+		return source + " " + destination;
+	}
+} 

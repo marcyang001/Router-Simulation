@@ -52,7 +52,7 @@ public class Router {
 	private void processDetect(String destinationIP) {
 		
 		
-		
+		lsd.getShortestPath(destinationIP);
 
 	}
 
@@ -416,8 +416,7 @@ public class Router {
 							 *  **/
 							
 							if (ports[i].router2.status == RouterStatus.TWO_WAY) {	
-								//ObjectInputStream inStreamFromServer;
-								
+									
 								try {
 									if (ports[i] != null) {
 										if (clients[i] != null) {
@@ -425,6 +424,14 @@ public class Router {
 													clients[i].getInputStream());
 											//client receives the package from server for update
 											SOSPFPacket packetFromServerForUpdate = (SOSPFPacket) inStreamFromServer.readObject();
+											
+											//now try to synchronize the database:
+											/**
+											 * 1. receive a packet with LSA of server
+											 * 2. update to the database
+											 * 3. broadcast to neighbors
+											 * 4. send back a packet with LSA of client
+											 *  **/
 											
 											//ready for link state update
 											if (packetFromServerForUpdate.sospfType == 1) {
@@ -459,14 +466,14 @@ public class Router {
 												
 												
 												//prepare its own package and send back to the server
-												//packetFromServerForUpdate.lsaArray.add(lsa);
+												
 												SOSPFPacket backToServerPacket = generateFullPacketUpdate((short) 1, packetFromServerForUpdate);
 												
 												outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
 												outStreamToServer.writeObject(backToServerPacket);
 												
 												//forward the package to its neighbors with its own LSA 
-												//packetFromServerForUpdate.lsaArray.add(lsa);
+											
 												
 												broadcastToNeighbors(packetFromServerForUpdate.neighborID, backToServerPacket);
 												
@@ -494,7 +501,7 @@ public class Router {
 								
 							}
 							else {
-								System.out.println("NOT TWO WAY???");
+								System.out.println("NOT TWO WAY");
 							}
 							
 						
@@ -545,10 +552,14 @@ public class Router {
 				}
 
 			}
+<<<<<<< HEAD
 			
 
 		
 		
+=======
+	
+>>>>>>> 5db18ee8d33082607d20d16659f834720fa14d6c
 		}//end the check here 
 		else {
 			System.out.println("No more potential links. Real = Potential");

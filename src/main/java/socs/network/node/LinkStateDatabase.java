@@ -4,7 +4,11 @@ import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 
 public class LinkStateDatabase implements Serializable{
@@ -30,12 +34,30 @@ public class LinkStateDatabase implements Serializable{
    * output the shortest path from this router to the destination with the given IP address
    */
   String getShortestPath(String destinationIP) {
-	  //TODO: fill the implementation here
+	 
+	  Graph g = makeGraph();
 	  
 	    
 	  
 	  return null;
   }
+  
+  // creating a more abstracted graph without unecessary infos
+  Graph makeGraph() {
+	 ArrayList<String> nodes = new ArrayList<String>();
+	 ArrayList<Edge> edges = new ArrayList<Edge>();
+	 for (String key: _store.keySet()) {  
+		  nodes.add(key);
+		  for (LinkDescription ld : _store.get(key).links) {
+			  Edge e = new Edge(ld.linkID, key, ld.linkID, ld.tosMetrics);
+			  edges.add(e);
+		  }
+	  }
+	
+	 return new Graph(nodes, edges);
+  }
+
+ 
   
   public RouterDescription getRd() {
 	  return this.rd;
