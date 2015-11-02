@@ -194,8 +194,9 @@ public class Router {
 	/**
 	 * broadcast the updated LSA to the neighbors except to the one that sends the LSA
 	 *  **/
-	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
+	synchronized private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
 		
+		System.out.println("Broadcasting to neighbors from client");
 		ObjectOutputStream outBroadcast;
 		updatePackage.sospfType = 2;
 		Socket broadcastClients[] = new Socket[4];
@@ -204,10 +205,10 @@ public class Router {
 			
 			if (ports[i] != null) {
 				
-				
+				//System.out.println("BROADCASTING TO NEIGHBORS: " + ports[i].router2.simulatedIPAddress);
 				if (!ports[i].router2.simulatedIPAddress.equals(senderIP)) {
 					//broadcast the new lsa to the neighbors
-					
+					//System.out.println("BROADCASTING TO NEIGHBORS: " + ports[i].router2.simulatedIPAddress);
 					try {
 						broadcastClients[i] = new Socket(
 								ports[i].router2.processIPAddress,
@@ -353,14 +354,11 @@ public class Router {
 									}
 								}
 								
-								// the potential neighbors link becomes real
-								// neighbors
 								
-								ports[i] = potentialNeighbors[i];
 								
 								LinkDescription newNeighborLink = new LinkDescription();
-								newNeighborLink.linkID = ports[i].router2.simulatedIPAddress;
-								newNeighborLink.portNum = ports[i].router2.processPortNumber;
+								newNeighborLink.linkID = potentialNeighbors[i].router2.simulatedIPAddress;
+								newNeighborLink.portNum = potentialNeighbors[i].router2.processPortNumber;
 								newNeighborLink.tosMetrics = potentialNeighbors[i].weight;
 								
 								lsa.links.add(newNeighborLink);
@@ -387,8 +385,18 @@ public class Router {
 								confirmPacket.writeObject(responsePacket);
 
 								
+								// the potential neighbors link becomes real
+								// neighbors
 								
-								
+								int portAvail = isRouterPortAlreadyTaken(potentialNeighbors[i].router2.simulatedIPAddress, rd.simulatedIPAddress, ports);
+								System.out.println("available port:" + portAvail);
+								if (portAvail >= 0) {
+									System.out.println("Official link!!");
+									ports[portAvail] = potentialNeighbors[i];
+								}
+								else {
+									deleteLinks.add(potentialNeighbors[i]);
+								}
 								
 								
 
@@ -398,6 +406,14 @@ public class Router {
 								deleteLinks.add(potentialNeighbors[i]);
 
 							}
+							
+							//now try to synchronize the database:
+							/**
+							 * 1. receive a packet with LSA of server
+							 * 2. update to the database
+							 * 3. broadcast to neighbors
+							 * 4. send back a packet with LSA of client
+							 *  **/
 							
 							if (ports[i].router2.status == RouterStatus.TWO_WAY) {	
 								//ObjectInputStream inStreamFromServer;
@@ -452,7 +468,7 @@ public class Router {
 												//forward the package to its neighbors with its own LSA 
 												//packetFromServerForUpdate.lsaArray.add(lsa);
 												
-												broadcastToNeighbors(packetFromServerForUpdate.neighborID, packetFromServerForUpdate);
+												broadcastToNeighbors(packetFromServerForUpdate.neighborID, backToServerPacket);
 												
 											}
 											
@@ -530,123 +546,7 @@ public class Router {
 
 			}
 			
-			//now try to synchronize the database:
-			/**
-			 * 1. receive a packet with LSA of server
-			 * 2. update to the database
-			 * 3. broadcast to neighbors
-			 * 4. send back a packet with LSA of client
-			 *  **/
-			/*
-			for (int i = 0; i< ports.length; i++) {
-				
-				if (ports[i] != null) {
-					if (ports[i].router2.status == RouterStatus.TWO_WAY) {
-						ports[i].router2.status = RouterStatus.EXCHANGE;
-					}
-					else {
-						continue;
-					}
-						
-						
-						//
-						// set the incoming router status to be EXCHANGE
-						// 
-						// router receives package from server
-						
-					if (ports[i].router2.status == RouterStatus.EXCHANGE) {	
-						ObjectInputStream inStreamFromServer;
-						
-						try {
-							if (ports[i] != null) {
-								if (clients[i] != null) {
-									inStreamFromServer = new ObjectInputStream(
-											clients[i].getInputStream());
-									//client receives the package from server for update
-									SOSPFPacket packetFromServerForUpdate = (SOSPFPacket) inStreamFromServer.readObject();
-									
-									//ready for link state update
-									if (packetFromServerForUpdate.sospfType == 1) {
-										
-										//try to update the LSA to the database
-										for (int j = 0; j < packetFromServerForUpdate.lsaArray.size(); j++) {
-											
-											if (packetFromServerForUpdate.lsaArray.get(j) != null) {
-												
-												String senderOfLSA = packetFromServerForUpdate.lsaArray.get(j).linkStateID;
-												int versionOfLSA = packetFromServerForUpdate.lsaArray.get(j).lsaSeqNumber;
-												//check if the LSA already existed in the database
-												if (!lsd._store.containsKey(senderOfLSA)) {
-													//update to the database
-													lsd.updateLSA(senderOfLSA, packetFromServerForUpdate.lsaArray.get(j));
-													//System.out.println(packetFromServerForUpdate.lsaArray.get(j).linkStateID);
-												}
-												//LSA already existed, check if its the newest version
-												else if (lsd._store.containsKey(senderOfLSA)) {
-													if (lsd._store.get(senderOfLSA).lsaSeqNumber < versionOfLSA) {
-														lsd.updateLSA(senderOfLSA, packetFromServerForUpdate.lsaArray.get(j));
-													}
-													
-												}
-											}
-											
-										}
-										
-										System.out.println("UPDATED THE DATABASE IN THE CLIENT");
-										System.out.println(lsd.toString());
-										
-										
-										
-										//prepare its own package and send back to the server
-										//packetFromServerForUpdate.lsaArray.add(lsa);
-										SOSPFPacket backToServerPacket = generateFullPacketUpdate((short) 1, packetFromServerForUpdate);
-										
-										outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
-										outStreamToServer.writeObject(backToServerPacket);
-										
-										//forward the package to its neighbors with its own LSA 
-										//packetFromServerForUpdate.lsaArray.add(lsa);
-										
-										broadcastToNeighbors(packetFromServerForUpdate.neighborID, packetFromServerForUpdate);
-										
-									}
-									
-									
-									
-									
-								} else {
-									System.out.println("Client is disconnected");
-									break;
-								}
-							}
-							
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} 
-						catch (ClassNotFoundException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						
-						
-						
-					}
-					else {
-						System.out.println("NOT TWO WAY???");
-					}
-				}
-				else {
-					break;
-				}
-				
-				
-				
-			}
-				
-			*/	
-				
-				
+
 		
 		
 		}//end the check here 
