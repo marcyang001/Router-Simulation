@@ -413,7 +413,7 @@ public class Router {
 							 * 4. send back a packet with LSA of client
 							 *  **/
 							
-							if (ports[i].router2.status == RouterStatus.TWO_WAY) {	
+							if (potentialNeighbors[i].router2.status == RouterStatus.TWO_WAY) {	
 									
 								try {
 									if (ports[i] != null) {
