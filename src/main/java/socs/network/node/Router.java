@@ -552,14 +552,6 @@ public class Router {
 				}
 
 			}
-<<<<<<< HEAD
-			
-
-		
-		
-=======
-	
->>>>>>> 5db18ee8d33082607d20d16659f834720fa14d6c
 		}//end the check here 
 		else {
 			System.out.println("No more potential links. Real = Potential");
