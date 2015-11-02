@@ -399,7 +399,7 @@ public class Router {
 
 							}
 							
-							if (ports[i].router2.status == RouterStatus.TWO_WAY) {	
+							if (potentialNeighbors[i].router2.status == RouterStatus.TWO_WAY) {	
 									
 								try {
 									if (ports[i] != null) {

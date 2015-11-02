@@ -11,101 +11,93 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
-public class LinkStateDatabase implements Serializable{
+public class LinkStateDatabase implements Serializable {
 
-  //linkID => LSAInstance
-  HashMap<String, LSA> _store = new HashMap<String, LSA>();
+	// linkID => LSAInstance
+	HashMap<String, LSA> _store = new HashMap<String, LSA>();
 
-  transient private RouterDescription rd = null;
+	transient private RouterDescription rd = null;
 
-  public LinkStateDatabase(RouterDescription routerDescription) {
-    rd = routerDescription;
-    LSA l = initLinkStateDatabase();
-    _store.put(l.linkStateID, l);
-  }
+	public LinkStateDatabase(RouterDescription routerDescription) {
+		rd = routerDescription;
+		LSA l = initLinkStateDatabase();
+		_store.put(l.linkStateID, l);
+	}
 
-  
-  
-  
-  
-  
-  
-  /**
-   * output the shortest path from this router to the destination with the given IP address
-   */
-  String getShortestPath(String destinationIP) {
-	 
-	  Graph g = makeGraph();
-	  
-	    
-	  
-	  return null;
-  }
-  
-  // creating a more abstracted graph without unecessary infos
-  Graph makeGraph() {
-	 ArrayList<String> nodes = new ArrayList<String>();
-	 ArrayList<Edge> edges = new ArrayList<Edge>();
-	 for (String key: _store.keySet()) {  
-		  nodes.add(key);
-		  for (LinkDescription ld : _store.get(key).links) {
-			  Edge e = new Edge(ld.linkID, key, ld.linkID, ld.tosMetrics);
-			  edges.add(e);
-		  }
-	  }
-	
-	 return new Graph(nodes, edges);
-  }
+	/**
+	 * output the shortest path from this router to the destination with the
+	 * given IP address
+	 */
+	String getShortestPath(String destinationIP) {
 
- 
-  
-  public RouterDescription getRd() {
-	  return this.rd;
-  }
+		Graph g = makeGraph();
+		Dijkstra dijkstra = new Dijkstra(g);
+	    dijkstra.execute(rd.simulatedIPAddress);
+	    return dijkstra.getPath(destinationIP);
+	}
 
-  public void updateLSA(String ipAddress, LSA lsa) {
-	  _store.put(ipAddress, lsa);
-  }
-  //initialize the linkstate database by adding an entry about the router itself
-  private LSA initLinkStateDatabase() {
-    LSA lsa = new LSA();
-    lsa.linkStateID = rd.simulatedIPAddress;
-    lsa.lsaSeqNumber = Integer.MIN_VALUE;
-    LinkDescription ld = new LinkDescription();
-    ld.linkID = rd.simulatedIPAddress;
-    ld.portNum = -1;
-    ld.tosMetrics = 0;
-    lsa.links.add(ld);
-    return lsa;
-  }
+	// creating a more abstracted graph without unecessary infos
+	Graph makeGraph() {
+		ArrayList<String> nodes = new ArrayList<String>();
+		ArrayList<Edge> edges = new ArrayList<Edge>();
+		for (String key : _store.keySet()) {
+			nodes.add(key);
+			for (LinkDescription ld : _store.get(key).links) {
+				Edge e = new Edge(key, ld.linkID, ld.tosMetrics);
+				edges.add(e);
+			}
+		}
 
-  
-  
-  
-  public Vector<LSA> retrieveLSAs() {
-	  Vector<LSA> lsa = new Vector<LSA>();
-	  
-	  for (String key: _store.keySet()) {
-		  
-		  lsa.add(_store.get(key));
-	  }
-	  
-	  return lsa;
-	  
-  }
+		return new Graph(nodes, edges);
+	}
 
 
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    for (LSA lsa: _store.values()) {
-      sb.append(lsa.linkStateID).append("(" + lsa.lsaSeqNumber + ")").append(":\t");
-      for (LinkDescription ld : lsa.links) {
-        sb.append(ld.linkID).append(",").append(ld.portNum).append(",").
-                append(ld.tosMetrics).append("\t");
-      }
-      sb.append("\n");
-    }
-    return sb.toString();
-  }
+	public RouterDescription getRd() {
+		return this.rd;
+	}
+
+	public void updateLSA(String ipAddress, LSA lsa) {
+		_store.put(ipAddress, lsa);
+	}
+
+	// initialize the linkstate database by adding an entry about the router
+	// itself
+	private LSA initLinkStateDatabase() {
+		LSA lsa = new LSA();
+		lsa.linkStateID = rd.simulatedIPAddress;
+		lsa.lsaSeqNumber = Integer.MIN_VALUE;
+		LinkDescription ld = new LinkDescription();
+		ld.linkID = rd.simulatedIPAddress;
+		ld.portNum = -1;
+		ld.tosMetrics = 0;
+		lsa.links.add(ld);
+		return lsa;
+	}
+
+	public Vector<LSA> retrieveLSAs() {
+		Vector<LSA> lsa = new Vector<LSA>();
+
+		for (String key : _store.keySet()) {
+
+			lsa.add(_store.get(key));
+		}
+
+		return lsa;
+
+	}
+
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		for (LSA lsa : _store.values()) {
+			sb.append(lsa.linkStateID).append("(" + lsa.lsaSeqNumber + ")")
+					.append(":\t");
+			for (LinkDescription ld : lsa.links) {
+				sb.append(ld.linkID).append(",").append(ld.portNum).append(",")
+						.append(ld.tosMetrics).append("\t");
+			}
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
 
 }
