@@ -194,8 +194,9 @@ public class Router {
 	/**
 	 * broadcast the updated LSA to the neighbors except to the one that sends the LSA
 	 *  **/
-	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
+	synchronized private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
 		
+		System.out.println("Broadcasting to neighbors from client");
 		ObjectOutputStream outBroadcast;
 		updatePackage.sospfType = 2;
 		Socket broadcastClients[] = new Socket[4];
@@ -204,10 +205,10 @@ public class Router {
 			
 			if (ports[i] != null) {
 				
-				
+				//System.out.println("BROADCASTING TO NEIGHBORS: " + ports[i].router2.simulatedIPAddress);
 				if (!ports[i].router2.simulatedIPAddress.equals(senderIP)) {
 					//broadcast the new lsa to the neighbors
-					
+					//System.out.println("BROADCASTING TO NEIGHBORS: " + ports[i].router2.simulatedIPAddress);
 					try {
 						broadcastClients[i] = new Socket(
 								ports[i].router2.processIPAddress,
@@ -353,14 +354,11 @@ public class Router {
 									}
 								}
 								
-								// the potential neighbors link becomes real
-								// neighbors
 								
-								ports[i] = potentialNeighbors[i];
 								
 								LinkDescription newNeighborLink = new LinkDescription();
-								newNeighborLink.linkID = ports[i].router2.simulatedIPAddress;
-								newNeighborLink.portNum = ports[i].router2.processPortNumber;
+								newNeighborLink.linkID = potentialNeighbors[i].router2.simulatedIPAddress;
+								newNeighborLink.portNum = potentialNeighbors[i].router2.processPortNumber;
 								newNeighborLink.tosMetrics = potentialNeighbors[i].weight;
 								
 								lsa.links.add(newNeighborLink);
@@ -387,8 +385,16 @@ public class Router {
 								confirmPacket.writeObject(responsePacket);
 
 								
+								// the potential neighbors link becomes real
+								// neighbors
 								
-								
+								int portAvail = isRouterPortAlreadyTaken(potentialNeighbors[i].router2.simulatedIPAddress, rd.simulatedIPAddress, ports);
+								if (portAvail >= 0) {
+									ports[portAvail] = potentialNeighbors[i];
+								}
+								else {
+									deleteLinks.add(potentialNeighbors[i]);
+								}
 								
 								
 
@@ -398,6 +404,14 @@ public class Router {
 								deleteLinks.add(potentialNeighbors[i]);
 
 							}
+							
+							//now try to synchronize the database:
+							/**
+							 * 1. receive a packet with LSA of server
+							 * 2. update to the database
+							 * 3. broadcast to neighbors
+							 * 4. send back a packet with LSA of client
+							 *  **/
 							
 							if (potentialNeighbors[i].router2.status == RouterStatus.TWO_WAY) {	
 									
@@ -459,7 +473,7 @@ public class Router {
 												//forward the package to its neighbors with its own LSA 
 											
 												
-												broadcastToNeighbors(packetFromServerForUpdate.neighborID, packetFromServerForUpdate);
+												broadcastToNeighbors(packetFromServerForUpdate.neighborID, backToServerPacket);
 												
 											}
 											
@@ -536,7 +550,6 @@ public class Router {
 				}
 
 			}
-	
 		}//end the check here 
 		else {
 			System.out.println("No more potential links. Real = Potential");
