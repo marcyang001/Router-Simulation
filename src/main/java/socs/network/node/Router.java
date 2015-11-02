@@ -389,9 +389,7 @@ public class Router {
 								// neighbors
 								
 								int portAvail = isRouterPortAlreadyTaken(potentialNeighbors[i].router2.simulatedIPAddress, rd.simulatedIPAddress, ports);
-								System.out.println("available port:" + portAvail);
 								if (portAvail >= 0) {
-									System.out.println("Official link!!");
 									ports[portAvail] = potentialNeighbors[i];
 								}
 								else {
