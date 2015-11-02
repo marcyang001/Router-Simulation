@@ -17,20 +17,18 @@ public class Dijkstra {
 	private HashMap<String, String> predecessors;
 	private HashMap<String, Integer> distance;
 
-	public Dijkstra(Graph graph) {
+	public Dijkstra(ArrayList<String> nodes, ArrayList<Edge> edges) {
 		// create a copy of the array so that we can operate on this array
-		this.nodes = new ArrayList<String>(graph.getVertexes());
-		this.edges = new ArrayList<Edge>(graph.getEdges());
+		this.nodes = nodes;
+		this.edges = edges;
 	}
 
 	public void execute(String source) {
 		nodesInC = new HashSet<String>();
-		nodesOutsideC = new HashSet<String>();
+		nodesOutsideC = new HashSet<String>(this.nodes);
 		distance = new HashMap<String, Integer>();
 		predecessors = new HashMap<String, String>();
 		distance.put(source, 0);
-		// this is the C.
-		nodesOutsideC.add(source);
 		// Loop N-1 times
 		while (nodesOutsideC.size() > 0) {
 			String node = getMinimum(nodesOutsideC);
@@ -63,8 +61,8 @@ public class Dijkstra {
 	    
 		for(int i = 0; i<path.size(); i++) {
 			if(i != path.size() -1) {
-				sb.append(path.get(i) + " ->(" + getDistance(path.get(i), path.get(i+1) + ")" 
-						+ " "));
+				sb.append(path.get(i) + " ->(" + getDistance(path.get(i), path.get(i+1)) + ")" 
+						+ " ");
 			}else {
 				sb.append(path.get(i));
 			}
@@ -119,9 +117,7 @@ public class Dijkstra {
 	private int getDistance(String node, String target) {
 		for (Edge edge : edges) {
 			if (edge.getSource().equals(node)
-					&& edge.getDestination().equals(target) || 
-					edge.getDestination().equals(node)
-					&& edge.getSource().equals(target)) {
+				&& edge.getDestination().equals(target) ) {
 				return edge.getWeight();
 			}
 		}

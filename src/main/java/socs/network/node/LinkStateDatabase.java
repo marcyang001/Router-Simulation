@@ -30,14 +30,6 @@ public class LinkStateDatabase implements Serializable {
 	 */
 	String getShortestPath(String destinationIP) {
 
-		Graph g = makeGraph();
-		Dijkstra dijkstra = new Dijkstra(g);
-	    dijkstra.execute(rd.simulatedIPAddress);
-	    return dijkstra.getPath(destinationIP);
-	}
-
-	// creating a more abstracted graph without unecessary infos
-	Graph makeGraph() {
 		ArrayList<String> nodes = new ArrayList<String>();
 		ArrayList<Edge> edges = new ArrayList<Edge>();
 		for (String key : _store.keySet()) {
@@ -47,9 +39,11 @@ public class LinkStateDatabase implements Serializable {
 				edges.add(e);
 			}
 		}
-
-		return new Graph(nodes, edges);
+		Dijkstra dijkstra = new Dijkstra(nodes, edges);
+	    dijkstra.execute(rd.simulatedIPAddress);
+	    return dijkstra.getPath(destinationIP);
 	}
+
 
 
 	public RouterDescription getRd() {

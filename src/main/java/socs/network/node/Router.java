@@ -52,7 +52,8 @@ public class Router {
 	private void processDetect(String destinationIP) {
 		
 		
-		lsd.getShortestPath(destinationIP);
+		String s = lsd.getShortestPath(destinationIP);
+		System.out.println(s);
 
 	}
 
