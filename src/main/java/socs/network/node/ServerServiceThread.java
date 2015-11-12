@@ -10,6 +10,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
@@ -75,11 +77,11 @@ public class ServerServiceThread implements Runnable {
 						// Accept incoming connections.
 						newSocket = sServer.accept();
 						
-						synchronized (this) {
-							if (!socketAddr.contains(newSocket.getRemoteSocketAddress())) {
-								socketAddr.add(newSocket.getRemoteSocketAddress());
-							}
+						
+						if (!socketAddr.contains(newSocket.getRemoteSocketAddress())) {
+							socketAddr.add(newSocket.getRemoteSocketAddress());
 						}
+						
 						//this.portNum = this.portNum + 1;
 						System.out.println("The client with Ip Address "
 								+ newSocket.getRemoteSocketAddress()
@@ -138,6 +140,7 @@ class ServerInputOutput implements Runnable {
 	ArrayList<SocketAddress> mm_socketAddr;
 	boolean flag;
 	LSA mm_lsa;
+	private final Lock lock = new ReentrantLock();
 	
 	public ServerInputOutput(Socket server, RouterDescription serverRouter,
 			Link[] ports, Link[] m_potentialNeighbors, ArrayList<SocketAddress> socketAddr, LinkStateDatabase m_lsd, LSA m_lsa) {
@@ -193,7 +196,7 @@ class ServerInputOutput implements Runnable {
 					
 					System.out.println("PACKET SENT FROM " +packetFromClient.neighborID);
 					
-					System.out.println("PACKET TYPE: " +packetFromClient.sospfType);
+					//System.out.println("PACKET TYPE: " +packetFromClient.sospfType);
 					
 					
 						// Message received
@@ -469,33 +472,37 @@ class ServerInputOutput implements Runnable {
 		boolean flag2 = false;
 		
 		
-		
-		
-		System.out.println("UPDATING THE DATABASE!!!!!");
-		for (int i = 0; i< incomingPacket.lsaArray.size(); i++) {
-			if (incomingPacket.lsaArray.get(i) != null) {
-				
-				String sendIP = incomingPacket.lsaArray.get(i).linkStateID;
-				int versionLSA = incomingPacket.lsaArray.get(i).lsaSeqNumber;
-				
-				if (!mm_database._store.containsKey(sendIP)) {
-					mm_database.updateLSA(sendIP, incomingPacket.lsaArray.get(i));
-					flag1 = true;
-					
+		synchronized (this.mm_database._store) {
+
+			System.out.println("UPDATING THE DATABASE!!!!!");
+			for (int i = 0; i < incomingPacket.lsaArray.size(); i++) {
+				if (incomingPacket.lsaArray.get(i) != null) {
+
+					String sendIP = incomingPacket.lsaArray.get(i).linkStateID;
+					int versionLSA = incomingPacket.lsaArray.get(i).lsaSeqNumber;
+
+					if (!mm_database._store.containsKey(sendIP)) {
+						mm_database.updateLSA(sendIP,
+								incomingPacket.lsaArray.get(i));
+						flag1 = true;
+
+					} else if (mm_database._store.containsKey(sendIP)
+							&& versionLSA > mm_database._store.get(sendIP).lsaSeqNumber) {
+						mm_database.updateLSA(sendIP,
+								incomingPacket.lsaArray.get(i));
+						flag2 = true;
+					}
 				}
-				else if (mm_database._store.containsKey(sendIP) && versionLSA > mm_database._store.get(sendIP).lsaSeqNumber) {
-					mm_database.updateLSA(sendIP, incomingPacket.lsaArray.get(i));
-					flag2 = true;
-				}
+
 			}
-			
+
+			this.mm_database._store.notify();
 		}
 		
 		
 		System.out.println(mm_database.toString());
 		
 		return (flag1 || flag2);
-		
 	}
 	
 	
@@ -528,17 +535,16 @@ class ServerInputOutput implements Runnable {
 	}
 	
 	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
-		//the server has to send the update to all its neighbors execpt for the one that sent the LSA
-		
+		// the server has to send the update to all its neighbors execept for the
+		// one that sent the LSA
+
 		System.out.println("Broadcasting to neighbors");
-		
 		Socket[] clients = new Socket[4];
 		ObjectOutputStream outBroadcast;
 		updatePackage.sospfType = 2;
-		
-		
-		for (int i = 0; i<mm_ports.length; i++) {
-			
+
+		for (int i = 0; i < mm_ports.length; i++) {
+
 			if (mm_ports[i] != null) {
 				if (!mm_ports[i].router2.simulatedIPAddress.equals(senderIP)) {
 					try {
@@ -548,9 +554,7 @@ class ServerInputOutput implements Runnable {
 						outBroadcast = new ObjectOutputStream(
 								clients[i].getOutputStream());
 						outBroadcast.writeObject(updatePackage);
-						
-						//outBroadcast.close();
-						//clients[i].close();
+
 					} catch (UnknownHostException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -560,12 +564,11 @@ class ServerInputOutput implements Runnable {
 					}
 				}
 			}
-			
+
 		}
-		
-		
-		
+
 	}
+		
 	
 
 	private int isRouterPortAlreadyTaken(String simIPAddr, String anotherIPAddr, Link[] mm_p) {
