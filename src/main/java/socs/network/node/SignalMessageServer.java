@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -23,13 +24,20 @@ public class SignalMessageServer implements Runnable{
 	PingTask pt;
 	
 	
-	public SignalMessageServer(Link trackingLink, Socket server,
-			ServerInputOutput serverInputOutput) {
+	public SignalMessageServer(Link trackingLink, ServerInputOutput serverInputOutput) {
 		// TODO Auto-generated constructor stub
 		
 		this.serverRouter = serverInputOutput;
 		this.timer = new Timer();
-		pt = new PingTask(trackingLink, server, serverInputOutput);
+		try {
+			this.client = new Socket(trackingLink.router2.processIPAddress, trackingLink.router2.processPortNumber);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.out.println("FAIL TO CONNECT BACK TO THE CLIENT");
+		}
+		pt = new PingTask(trackingLink, client, serverInputOutput);
 		
 	}
 	
@@ -44,11 +52,10 @@ public class SignalMessageServer implements Runnable{
 		Link neighbor;
 		ServerInputOutput m_server;
 
-		public PingTask(Link trackingLink, Socket server,
-				ServerInputOutput serverInputOutput) {
+		public PingTask(Link trackingLink, Socket client, ServerInputOutput serverInputOutput) {
 			// TODO Auto-generated constructor stub
 			this.m_server = serverInputOutput;
-			this.sender = server;
+			this.sender = client;
 			this.neighbor = trackingLink;
 		}
 
@@ -145,10 +152,10 @@ public class SignalMessageServer implements Runnable{
 						m_server.serverRouter.simulatedIPAddress, (short)-1);
 				
 				responsePacket.lsaArray.add(m_server.mm_lsa);
-				
+				responsePacket.originalSender = neighbor.router2.simulatedIPAddress;
 				
 				//7.
-				m_server.broadcastToNeighbors(neighbor.router2.simulatedIPAddress, responsePacket);
+				m_server.broadcastToNeighbors(neighbor.router2.simulatedIPAddress, responsePacket, (short)4);
 				
 
 				System.out.println(m_server.mm_lsa.toString());

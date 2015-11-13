@@ -201,10 +201,10 @@ public class Router {
 	/**
 	 * broadcast the updated LSA to the neighbors except to the one that sends the LSA
 	 *  **/
-	protected void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {		
+	protected void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage, short type) {		
 		System.out.println("Broadcasting to neighbors from client");
 		ObjectOutputStream outBroadcast;
-		updatePackage.sospfType = 2;
+		updatePackage.sospfType = type;
 		Socket broadcastClients[] = new Socket[4];
 
 		for (int i = 0; i< ports.length; i++) {
@@ -457,12 +457,7 @@ public class Router {
 
 											// ready for link state update
 											if (packetFromServerForUpdate.sospfType == 1) {
-
-												// update the database
-												databaseUpdate(packetFromServerForUpdate);
-
-												System.out
-														.println("ENTER HERE FOR UPDATE 1");
+												
 												// update the database
 												databaseUpdate(packetFromServerForUpdate);
 
@@ -483,7 +478,7 @@ public class Router {
 												// neighbors with its own LSA
 												broadcastToNeighbors(
 														packetFromServerForUpdate.neighborID,
-														backToServerPacket);
+														backToServerPacket, (short)2);
 
 											}
 
@@ -614,14 +609,16 @@ public class Router {
 	}
 	
 	
-	private SOSPFPacket generateFullPacketUpdate(short type, SOSPFPacket incomingPacket) {
+	
+	
+	public SOSPFPacket generateFullPacketUpdate(short type, SOSPFPacket incomingPacket) {
 		//create the package that only contains the LSA of this router
 		SOSPFPacket serverPacketForUpdate = new SOSPFPacket(
 				rd.processIPAddress, rd.processPortNumber,
 				rd.simulatedIPAddress, incomingPacket.neighborID, type,
 				rd.simulatedIPAddress, rd.simulatedIPAddress,
 				incomingPacket.weight);
-		
+		serverPacketForUpdate.originalSender = incomingPacket.originalSender;
 		serverPacketForUpdate.lsaArray = lsd.retrieveLSAs();
 		serverPacketForUpdate.lsaArray.addAll(incomingPacket.lsaArray);
 		serverPacketForUpdate.lsaArray.add(lsa);
@@ -664,6 +661,8 @@ public class Router {
 	 * disconnect with all neighbors and quit the program
 	 */
 	private void processQuit() {
+		
+		System.exit(1);
 
 	}
 

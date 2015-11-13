@@ -148,6 +148,7 @@ class PeriodMessage extends TimerTask {
 			}
 			//6
 			m_router.lsd.updateLSA(m_router.rd.simulatedIPAddress, m_router.lsa);
+			m_router.lsd.deleteNeighbor(neighbor.router2.simulatedIPAddress);
 			
 			SOSPFPacket responsePacket = new SOSPFPacket(
 					m_router.rd.processIPAddress,
@@ -158,10 +159,12 @@ class PeriodMessage extends TimerTask {
 					m_router.rd.simulatedIPAddress, (short)-1);
 			
 			responsePacket.lsaArray.add(m_router.lsa);
+			responsePacket.originalSender = neighbor.router2.simulatedIPAddress;
 			
+			SOSPFPacket newPacket = m_router.generateFullPacketUpdate((short)4, responsePacket);
 			
 			//7.
-			m_router.broadcastToNeighbors(neighbor.router2.simulatedIPAddress, responsePacket);
+			m_router.broadcastToNeighbors(neighbor.router2.simulatedIPAddress, newPacket, (short)4);
 			
 
 			System.out.println(m_router.lsa.toString());

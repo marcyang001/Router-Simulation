@@ -55,7 +55,15 @@ public class LinkStateDatabase implements Serializable {
 
 	public void updateLSA(String ipAddress, LSA lsa) {
 		synchronized(_store) {
-			_store.put(ipAddress, lsa);
+			if (_store.containsKey(ipAddress)) {
+				System.out.println("UPDATED HERE!!!!!ASDHAHS");
+				_store.remove(ipAddress);
+				_store.put(ipAddress, lsa);
+			}
+			else {
+				_store.put(ipAddress, lsa);
+			}
+			
 		}
 	}
 	
@@ -64,6 +72,20 @@ public class LinkStateDatabase implements Serializable {
 			_store.remove(ipAddress);
 		}
 	}
+	
+	public void deleteNeighbor(String ipAddress) {
+		synchronized(_store) {
+			//delete the rest of the components in of the lost neighbor in the database
+			for (LSA lsaInDatabase : _store.values()) {
+				for (LinkDescription linkInDatabase : lsaInDatabase.links) {
+					if (linkInDatabase.linkID.equals(ipAddress)) {
+						lsaInDatabase.links.remove(linkInDatabase);
+					}
+				}
+			}
+		}
+	}
+	
 
 	// initialize the linkstate database by adding an entry about the router
 	// itself
