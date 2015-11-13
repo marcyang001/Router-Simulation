@@ -201,12 +201,7 @@ public class Router {
 	/**
 	 * broadcast the updated LSA to the neighbors except to the one that sends the LSA
 	 *  **/
-<<<<<<< HEAD
-	protected void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
-=======
-	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
->>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
-		
+	protected void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {		
 		System.out.println("Broadcasting to neighbors from client");
 		ObjectOutputStream outBroadcast;
 		updatePackage.sospfType = 2;
@@ -249,12 +244,12 @@ public class Router {
 	 * @throws UnknownHostException
 	 */
 	private void processStart() {
-		
+
 		int potential = 0;
 		int portNum;
 		int real = 0;
 		ObjectOutputStream outStreamToServer;
-		//check how many real links already established
+		// check how many real links already established
 		for (portNum = 0; portNum < 4; portNum++) {
 			if (this.ports[portNum] != null) {
 				real++;
@@ -265,15 +260,18 @@ public class Router {
 		}
 		System.out.println("real neighbors: " + real);
 		System.out.println("potential neighbors: " + potential);
-		//System.out.println("ENTER HERE 1 !!!!");
-		
-		/**compare the real links with the potential links if the potential links is updated, then broadcast again, else stay idle**/
+		// System.out.println("ENTER HERE 1 !!!!");
+
+		/**
+		 * compare the real links with the potential links if the potential
+		 * links is updated, then broadcast again, else stay idle
+		 **/
 		if (potential > real) {
 			ArrayList<Link> deleteLinks = new ArrayList<Link>();
-			//System.out.println("ENTER HERE 2");
-		// create 4 packets for each neighbor
-		for (int i = 0; i < potentialNeighbors.length; i++) {
-			
+			// System.out.println("ENTER HERE 2");
+			// create 4 packets for each neighbor
+			for (int i = 0; i < potentialNeighbors.length; i++) {
+
 				if (this.potentialNeighbors[i] != null) {
 
 					if (this.potentialNeighbors[i].router2.status == null) {
@@ -282,11 +280,11 @@ public class Router {
 								clients[i] = new Socket(
 										potentialNeighbors[i].router2.processIPAddress,
 										potentialNeighbors[i].router2.processPortNumber);
-								//clients[i].setSoTimeout(1000);
+								// clients[i].setSoTimeout(1000);
 
 							}
 							/** step 1 **/
-							//System.out.println("START TO SEND PACKET");
+							// System.out.println("START TO SEND PACKET");
 							// client sends the packet to the server
 							outStreamToServer = new ObjectOutputStream(
 									clients[i].getOutputStream());
@@ -297,263 +295,266 @@ public class Router {
 									rd.simulatedIPAddress,
 									potentialNeighbors[i].router2.simulatedIPAddress,
 									(short) 0, rd.simulatedIPAddress,
-									rd.simulatedIPAddress, potentialNeighbors[i].weight);
+									rd.simulatedIPAddress,
+									potentialNeighbors[i].weight);
 
 							outStreamToServer.writeObject(clientPacket);
 
-						}
-						catch (SocketTimeoutException st) {
-							//if its socket timeout, delete the link from potential neighbors
-<<<<<<< HEAD
+						} catch (SocketTimeoutException st) {
+							// if its socket timeout, delete the link from
+							// potential neighbors
 							this.potentialNeighbors[i].router2.status = RouterStatus.FAIL;
-=======
+
 							potentialNeighbors[i].router2.status = RouterStatus.FAIL;
->>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 							deleteLinks.add(potentialNeighbors[i]);
-							
-							
-						}
-						catch (IOException e) {
+
+						} catch (IOException e) {
 							// TODO Auto-generated catch block
-<<<<<<< HEAD
 							System.out
-									.println("Client cannot send to the object to the server " + potentialNeighbors[i].router2.simulatedIPAddress);
-							this.potentialNeighbors[i].router2.status = RouterStatus.FAIL;	
-=======
-							System.out.println("Client cannot send to the object to the server " + potentialNeighbors[i].router2.simulatedIPAddress);		
+									.println("Client cannot send to the object to the server "
+											+ potentialNeighbors[i].router2.simulatedIPAddress);
+							this.potentialNeighbors[i].router2.status = RouterStatus.FAIL;
+							System.out
+									.println("Client cannot send to the object to the server "
+											+ potentialNeighbors[i].router2.simulatedIPAddress);
 							potentialNeighbors[i].router2.status = RouterStatus.FAIL;
->>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 							deleteLinks.add(potentialNeighbors[i]);
-							
+
 						}
 					}
 				} else {
 					break;
 				}
 
-		}// end the for loop
-		
-		
-		
-		// now try to receive the packets
-		for (int i = 0; i < potentialNeighbors.length; i++) {
-			if (potentialNeighbors[i] != null) {
-<<<<<<< HEAD
-				ObjectInputStream inStreamFromServer;
-				if (potentialNeighbors[i].router2.status == null) {
-=======
-				if (potentialNeighbors[i].router2.status != RouterStatus.FAIL) {
->>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
-						try {
-							/** The process of step 2 (client side) **/
-							// System.out.println("Client tried to receive stuff");
-							// client try receives the packet from the server
-							inStreamFromServer = new ObjectInputStream(
-									clients[i].getInputStream());
+			}// end the for loop
 
-							SOSPFPacket packetFromServer = (SOSPFPacket) inStreamFromServer
-									.readObject();
+			// now try to receive the packets
+			for (int i = 0; i < potentialNeighbors.length; i++) {
+				if (potentialNeighbors[i] != null) {
+					ObjectInputStream inStreamFromServer;
+					if (potentialNeighbors[i].router2.status == null) {
+						if (potentialNeighbors[i].router2.status != RouterStatus.FAIL) {
 
-							// packet received
-							if (packetFromServer.sospfType == 0) {
-								// Client prints the HELLO message from server
-								System.out.println("received HELLO from "
-										+ packetFromServer.neighborID + "; ");
+							try {
+								/** The process of step 2 (client side) **/
+								// System.out.println("Client tried to receive stuff");
+								// client try receives the packet from the
+								// server
+								inStreamFromServer = new ObjectInputStream(
+										clients[i].getInputStream());
 
-								// set the link to TWO_WAY
+								SOSPFPacket packetFromServer = (SOSPFPacket) inStreamFromServer
+										.readObject();
 
-								for (int j = 0; j < 4; j++) {
-									// find the Link that matched the packet
-									// information
+								// packet received
+								if (packetFromServer.sospfType == 0) {
+									// Client prints the HELLO message from
+									// server
+									System.out.println("received HELLO from "
+											+ packetFromServer.neighborID
+											+ "; ");
 
-									if (this.potentialNeighbors[j].router2 != null) {
-										if (potentialNeighbors[j].router2.simulatedIPAddress
-												.equals(packetFromServer.neighborID)) {
-											potentialNeighbors[j].router2.status = RouterStatus.TWO_WAY;
-											System.out
-													.println("set "
-															+ potentialNeighbors[j].router2.simulatedIPAddress
-															+ " state to "
-															+ potentialNeighbors[j].router2.status);
-											break;
+									// set the link to TWO_WAY
+
+									for (int j = 0; j < 4; j++) {
+										// find the Link that matched the packet
+										// information
+
+										if (this.potentialNeighbors[j].router2 != null) {
+											if (potentialNeighbors[j].router2.simulatedIPAddress
+													.equals(packetFromServer.neighborID)) {
+												potentialNeighbors[j].router2.status = RouterStatus.TWO_WAY;
+												System.out
+														.println("set "
+																+ potentialNeighbors[j].router2.simulatedIPAddress
+																+ " state to "
+																+ potentialNeighbors[j].router2.status);
+												break;
+											}
 										}
 									}
-								}
-								
-								
-								
-								LinkDescription newNeighborLink = new LinkDescription();
-								newNeighborLink.linkID = potentialNeighbors[i].router2.simulatedIPAddress;
-								newNeighborLink.portNum = potentialNeighbors[i].router2.processPortNumber;
-								newNeighborLink.tosMetrics = potentialNeighbors[i].weight;
-								
-								lsa.links.add(newNeighborLink);
-								lsa.lsaSeqNumber++;
-								
-								
-								/** The process of step 3 (client confirmation) 
-								 * 
-								 * send the packet with LSA of the client
-								 *  **/
 
-								SOSPFPacket responsePacket = new SOSPFPacket(
-										rd.processIPAddress,
-										rd.processPortNumber,
-										rd.simulatedIPAddress,
-										potentialNeighbors[i].router2.simulatedIPAddress,
-										(short) 0, rd.simulatedIPAddress,
-										rd.simulatedIPAddress, potentialNeighbors[i].weight);
-								
-								responsePacket.lsaArray.add(lsa);
-								
-								ObjectOutputStream confirmPacket = new ObjectOutputStream(
-										clients[i].getOutputStream());
-								confirmPacket.writeObject(responsePacket);
+									LinkDescription newNeighborLink = new LinkDescription();
+									newNeighborLink.linkID = potentialNeighbors[i].router2.simulatedIPAddress;
+									newNeighborLink.portNum = potentialNeighbors[i].router2.processPortNumber;
+									newNeighborLink.tosMetrics = potentialNeighbors[i].weight;
 
-								
-								// the potential neighbors link becomes real
-								// neighbors
-						
-								int portAvail = isRouterPortAlreadyTaken(potentialNeighbors[i].router2.simulatedIPAddress, rd.simulatedIPAddress, ports);
-								if (portAvail >= 0) {
-									ports[portAvail] = potentialNeighbors[i];
-								}
-								else {
+									lsa.links.add(newNeighborLink);
+									lsa.lsaSeqNumber++;
+
+									/**
+									 * The process of step 3 (client
+									 * confirmation)
+									 * 
+									 * send the packet with LSA of the client
+									 * **/
+
+									SOSPFPacket responsePacket = new SOSPFPacket(
+											rd.processIPAddress,
+											rd.processPortNumber,
+											rd.simulatedIPAddress,
+											potentialNeighbors[i].router2.simulatedIPAddress,
+											(short) 0, rd.simulatedIPAddress,
+											rd.simulatedIPAddress,
+											potentialNeighbors[i].weight);
+
+									responsePacket.lsaArray.add(lsa);
+
+									ObjectOutputStream confirmPacket = new ObjectOutputStream(
+											clients[i].getOutputStream());
+									confirmPacket.writeObject(responsePacket);
+
+									// the potential neighbors link becomes real
+									// neighbors
+
+									int portAvail = isRouterPortAlreadyTaken(
+											potentialNeighbors[i].router2.simulatedIPAddress,
+											rd.simulatedIPAddress, ports);
+									if (portAvail >= 0) {
+										ports[portAvail] = potentialNeighbors[i];
+									} else {
+										deleteLinks.add(potentialNeighbors[i]);
+									}
+
+								} else {
+									potentialNeighbors[i].router2.status = RouterStatus.FAIL;
+									System.out
+											.println("Client did not receive a return message from the server");
 									deleteLinks.add(potentialNeighbors[i]);
+
 								}
-								
-								
-								
-<<<<<<< HEAD
-								
-=======
->>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
+								System.out
+										.println("START UPDATING THE DATABASE!!!!!!");
+								System.out
+										.println(potentialNeighbors[i].router2.status);
+								/**
+								 * now try to synchronize the database: 1.
+								 * receive a packet with LSA of server 2. update
+								 * to the database 3. broadcast to neighbors 4.
+								 * send back a packet with LSA of client
+								 * **/
 
-							} else {
-								potentialNeighbors[i].router2.status = RouterStatus.FAIL;
-								System.out.println("Client did not receive a return message from the server");
-								deleteLinks.add(potentialNeighbors[i]);
-
-							}
-							System.out.println("START UPDATING THE DATABASE!!!!!!");
-							System.out.println(potentialNeighbors[i].router2.status);
-							/**
-							 * now try to synchronize the database:
-							 * 1. receive a packet with LSA of server
-							 * 2. update to the database
-							 * 3. broadcast to neighbors
-							 * 4. send back a packet with LSA of client
-							 *  **/
-							
-							if (potentialNeighbors[i].router2.status == RouterStatus.TWO_WAY) {	
+								if (potentialNeighbors[i].router2.status == RouterStatus.TWO_WAY) {
 									System.out.println("ENTER HERE FOR UPDATE");
-								try {
-									//if (ports[i] != null) {
+									try {
+										// if (ports[i] != null) {
 										if (clients[i] != null) {
-											
+
 											inStreamFromServer = new ObjectInputStream(
 													clients[i].getInputStream());
-											
-											
-											SOSPFPacket packetFromServerForUpdate = (SOSPFPacket) inStreamFromServer.readObject();
-											
-											//now try to synchronize the database:
+
+											SOSPFPacket packetFromServerForUpdate = (SOSPFPacket) inStreamFromServer
+													.readObject();
+
+											// now try to synchronize the
+											// database:
 											/**
-											 * 1. receive a packet with LSA of server
-											 * 2. update to the database
-											 * 3. broadcast to neighbors
-											 * 4. send back a packet with LSA of client
-											 *  **/
-											
-											//ready for link state update
+											 * 1. receive a packet with LSA of
+											 * server 2. update to the database
+											 * 3. broadcast to neighbors 4. send
+											 * back a packet with LSA of client
+											 * **/
+
+											// ready for link state update
 											if (packetFromServerForUpdate.sospfType == 1) {
-<<<<<<< HEAD
-												
-												//update the database
-												 databaseUpdate(packetFromServerForUpdate);
-											
-=======
-												System.out.println("ENTER HERE FOR UPDATE 1");
-												//update the database
-												databaseUpdate(packetFromServerForUpdate); 
-												
->>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
-												//prepare its own package and send back to the server
-												
-												SOSPFPacket backToServerPacket = generateFullPacketUpdate((short) 1, packetFromServerForUpdate);
-												
-												outStreamToServer = new ObjectOutputStream(clients[i].getOutputStream());
-												outStreamToServer.writeObject(backToServerPacket);
-												
-												//forward the package to its neighbors with its own LSA 
-												broadcastToNeighbors(packetFromServerForUpdate.neighborID, backToServerPacket);
-												
-											}	
-											
-											//spawn off the child thread that sends the message periodically
-											sendMessage[i] = new SignalMessage(ports[i], clients[i], this);
-											Thread t = new Thread(sendMessage[i]);
+
+												// update the database
+												databaseUpdate(packetFromServerForUpdate);
+
+												System.out
+														.println("ENTER HERE FOR UPDATE 1");
+												// update the database
+												databaseUpdate(packetFromServerForUpdate);
+
+												// prepare its own package and
+												// send back to the server
+
+												SOSPFPacket backToServerPacket = generateFullPacketUpdate(
+														(short) 1,
+														packetFromServerForUpdate);
+
+												outStreamToServer = new ObjectOutputStream(
+														clients[i]
+																.getOutputStream());
+												outStreamToServer
+														.writeObject(backToServerPacket);
+
+												// forward the package to its
+												// neighbors with its own LSA
+												broadcastToNeighbors(
+														packetFromServerForUpdate.neighborID,
+														backToServerPacket);
+
+											}
+
+											// spawn off the child thread that
+											// sends the message periodically
+											sendMessage[i] = new SignalMessage(
+													ports[i], clients[i], this);
+											Thread t = new Thread(
+													sendMessage[i]);
 											t.start();
-										
-											
+
 										} else {
-											System.out.println("Client is disconnected");
+											System.out
+													.println("Client is disconnected");
 											break;
 										}
-									//}
-									
-								} catch (IOException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								} 
-								catch (ClassNotFoundException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-								
-								
-								
-							}
-							else {
-								System.out.println("NOT TWO WAY: not connected to " + potentialNeighbors[i].router2.simulatedIPAddress);
-							}
-							
-						
-						}
-						catch (SocketTimeoutException st) {
-							//if its socket timeout, delete the link from potential neighbors
-							System.out.println("Server ports are full, cannot send packets");
-							
-							//delete the link from potential neighbors
-							List<Link> list = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
-							list.remove(Arrays.asList(potentialNeighbors[i]));
-							potentialNeighbors = list.toArray(potentialNeighbors);
-							
-							
-						}
-						catch (IOException e) {
-							// TODO Auto-generated catch block
-							
-							List<Link> list = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
-							list.remove(Arrays.asList(potentialNeighbors[i]));
-							potentialNeighbors = list.toArray(potentialNeighbors);
-							System.out.println("FAIL to receive connection from the server");
-							
-							e.printStackTrace();
-							
-							
-						} catch (ClassNotFoundException e) {
-							System.out
-									.println("Client cannot receive the packet from server");
-						}
+										// }
 
-					}// !FAIL
-				
-				
+									} catch (IOException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									} catch (ClassNotFoundException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+
+								} else {
+									System.out
+											.println("NOT TWO WAY: not connected to "
+													+ potentialNeighbors[i].router2.simulatedIPAddress);
+								}
+
+							} catch (SocketTimeoutException st) {
+								// if its socket timeout, delete the link from
+								// potential neighbors
+								System.out
+										.println("Server ports are full, cannot send packets");
+
+								// delete the link from potential neighbors
+								List<Link> list = new ArrayList<Link>(
+										Arrays.asList(potentialNeighbors));
+								list.remove(Arrays
+										.asList(potentialNeighbors[i]));
+								potentialNeighbors = list
+										.toArray(potentialNeighbors);
+
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+
+								List<Link> list = new ArrayList<Link>(
+										Arrays.asList(potentialNeighbors));
+								list.remove(Arrays
+										.asList(potentialNeighbors[i]));
+								potentialNeighbors = list
+										.toArray(potentialNeighbors);
+								System.out
+										.println("FAIL to receive connection from the server");
+
+								e.printStackTrace();
+
+							} catch (ClassNotFoundException e) {
+								System.out
+										.println("Client cannot receive the packet from server");
+							}
+
+						}// !FAIL
+					}
 				}
 
 			}// end the for loop
-		
+
 			// remove the invalid neighbors if there are any
 			if (deleteLinks.size() > 0) {
 
@@ -566,58 +567,14 @@ public class Router {
 				}
 
 			}
-		}//end the check here 
+		}// end the check here
 		else {
 			System.out.println("No more potential links. Real = Potential");
-			
+
 		}
-		
-	}//end the start method 
+
+	}// end the start method
 	
-	private boolean databaseUpdate(SOSPFPacket packetFromServerForUpdate) {
-		// try to update the LSA to the database
-		System.out.println("UPDATING THE DATABASE IN THE CLIENT");
-		boolean flag1 = false;
-		boolean flag2 = false;
-		
-		synchronized (this.lsd._store) {
-			//concurrency control
-		
-			for (int j = 0; j < packetFromServerForUpdate.lsaArray.size(); j++) {
-				if (packetFromServerForUpdate.lsaArray.get(j) != null) {
-
-					String senderOfLSA = packetFromServerForUpdate.lsaArray
-							.get(j).linkStateID;
-					int versionOfLSA = packetFromServerForUpdate.lsaArray
-							.get(j).lsaSeqNumber;
-					// check if the LSA already existed in the database
-					if (!lsd._store.containsKey(senderOfLSA)) {
-						// update to the database
-						lsd.updateLSA(senderOfLSA,
-								packetFromServerForUpdate.lsaArray.get(j));
-						flag1 = true;
-					}
-					// LSA already existed, check if its the newest version
-					else if (lsd._store.containsKey(senderOfLSA)) {
-						if (lsd._store.get(senderOfLSA).lsaSeqNumber < versionOfLSA) {
-							lsd.updateLSA(senderOfLSA,
-									packetFromServerForUpdate.lsaArray.get(j));
-							flag2 = true;
-						}
-
-					}
-				}
-
-			}
-			
-			this.lsd._store.notify();
-		}
-				
-		System.out.println(lsd.toString());	
-		return (flag1 || flag2);
-		
-	}
-
 	
 	private boolean databaseUpdate(SOSPFPacket incomingPacket) {
 		

@@ -326,7 +326,7 @@ class ServerInputOutput implements Runnable {
 						}// done sending HELLO
 
 						// broadcast received and the new packet received for
-						// update
+						// update => the sospftype 1 , 2, 3
 						else if (packetFromClient.sospfType == 1) {
 							
 							
@@ -375,6 +375,12 @@ class ServerInputOutput implements Runnable {
 							
 								
 						}
+						
+						//delete or disconnect a neighbor ==> 4, 5, 6
+						else if (packetFromClient.sospfType == 4){
+							
+							
+						}
 				
 
 					
@@ -389,38 +395,7 @@ class ServerInputOutput implements Runnable {
 
 			} catch (IOException e) {
 				System.out.println("Cannot receive input object. Quit");
-				//e.printStackTrace();
-				/*				
-								//find the link in the potential Neighbor and Neighbor, then delete it in both arrays
-								for (int i = 0; i < mm_socketAddr.size(); i++) {
-									
-									if (mm_socketAddr.get(i) != null) {
-										//System.out.println(mm_socketAddr.get(i));
-										if (mm_socketAddr.get(i).equals(server.getRemoteSocketAddress())) {
-											
-											
-											System.out.println(i);
-											
-											mm_potentialNeighbors[i] = null;
-											List<Link> list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));	
-											
-											list = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
-											list.remove(Arrays.asList(mm_potentialNeighbors[i]));
-											mm_potentialNeighbors = list.toArray(mm_potentialNeighbors);
-											
-											mm_ports[i] = null;
-											List<Link> list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
-											list1 = new ArrayList<Link>(Arrays.asList(mm_ports));
-											list1.remove(Arrays.asList(mm_ports[i]));
-											mm_ports = list1.toArray(mm_ports);
-												
-											
-											mm_socketAddr.remove(i);
-										}	
-									}
-								}
-								
-				 */				
+				
 				
 				break;
 				
@@ -502,8 +477,6 @@ class ServerInputOutput implements Runnable {
 				}
 			}
 		}
-		
-	
 		System.out.println(mm_database.toString());
 		
 		return (flag1 || flag2);
@@ -539,7 +512,7 @@ class ServerInputOutput implements Runnable {
 	}
 	
 
-	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
+	public void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
 		// the server has to send the update to all its neighbors execept for the
 		// one that sent the LSA
 
