@@ -135,6 +135,7 @@ class ServerInputOutput implements Runnable {
 	RouterDescription serverRouter;
 	Link[] mm_ports;
 	Link[] mm_potentialNeighbors;
+	SignalMessageServer[] sendHello = new SignalMessageServer[4];
 	ArrayList<SocketAddress> mm_socketAddr;
 	boolean flag;
 	LSA mm_lsa;
@@ -287,17 +288,24 @@ class ServerInputOutput implements Runnable {
 														+ " state to "
 														+ mm_ports[i].router2.status);				
 										
+										//sendHello[i] = new SignalMessageServer(mm_ports[i], server, this);
+										//Thread t = new Thread(sendHello[i]);
+										//t.start();
 										break;
 									}
 								}
-								
-								//update the database
-								databaseUpdate(packetFromClient);
+								short sospftype = 0;
+								if (packetFromClient.weight != -1) {
+									//update the database
+									databaseUpdate(packetFromClient);
+									sospftype = 1;
+								}
 
+								
 								// prepare a packet with LSA of this current
 								// router and send it back to client
 								SOSPFPacket serverPacketForUpdate = generateFullPackage(
-										(short) 1, packetFromClient);
+										sospftype, packetFromClient);
 								
 								
 								
@@ -305,8 +313,13 @@ class ServerInputOutput implements Runnable {
 										server.getOutputStream());
 
 								outStream.writeObject(serverPacketForUpdate);
-
+								
+								
+								
 							}
+							
+							
+							
 						}// done sending HELLO
 
 						// broadcast received and the new packet received for
@@ -374,7 +387,7 @@ class ServerInputOutput implements Runnable {
 			} catch (IOException e) {
 				System.out.println("Cannot receive input object. Quit");
 				//e.printStackTrace();
-				
+				/*				
 								//find the link in the potential Neighbor and Neighbor, then delete it in both arrays
 								for (int i = 0; i < mm_socketAddr.size(); i++) {
 									
@@ -404,7 +417,7 @@ class ServerInputOutput implements Runnable {
 									}
 								}
 								
-				
+				 */				
 				
 				break;
 				
@@ -467,10 +480,7 @@ class ServerInputOutput implements Runnable {
 		
 		boolean flag1 = false;
 		boolean flag2 = false;
-		
-		
-		
-		
+			
 		System.out.println("UPDATING THE DATABASE!!!!!");
 		for (int i = 0; i< incomingPacket.lsaArray.size(); i++) {
 			if (incomingPacket.lsaArray.get(i) != null) {
@@ -527,7 +537,7 @@ class ServerInputOutput implements Runnable {
 		return serverPacketForUpdate;
 	}
 	
-	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
+	protected void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
 		//the server has to send the update to all its neighbors execpt for the one that sent the LSA
 		
 		System.out.println("Broadcasting to neighbors");

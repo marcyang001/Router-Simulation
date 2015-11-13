@@ -29,7 +29,7 @@ public class LinkStateDatabase implements Serializable {
 	 * given IP address
 	 */
 	String getShortestPath(String destinationIP) {
-
+		synchronized(_store) {
 		ArrayList<String> nodes = new ArrayList<String>();
 		ArrayList<Edge> edges = new ArrayList<Edge>();
 		for (String key : _store.keySet()) {
@@ -42,6 +42,7 @@ public class LinkStateDatabase implements Serializable {
 		Dijkstra dijkstra = new Dijkstra(nodes, edges);
 	    dijkstra.execute(rd.simulatedIPAddress);
 	    return dijkstra.getPath(destinationIP);
+		}
 	}
 
 
@@ -51,7 +52,15 @@ public class LinkStateDatabase implements Serializable {
 	}
 
 	public void updateLSA(String ipAddress, LSA lsa) {
-		_store.put(ipAddress, lsa);
+		synchronized(_store) {
+			_store.put(ipAddress, lsa);
+		}
+	}
+	
+	public void removeLSA(String ipAddress) {
+		synchronized(_store) {
+			_store.remove(ipAddress);
+		}
 	}
 
 	// initialize the linkstate database by adding an entry about the router
@@ -70,13 +79,12 @@ public class LinkStateDatabase implements Serializable {
 
 	public Vector<LSA> retrieveLSAs() {
 		Vector<LSA> lsa = new Vector<LSA>();
-
-		for (String key : _store.keySet()) {
-
-			lsa.add(_store.get(key));
+		synchronized(_store) {
+			for (String key : _store.keySet()) {
+				lsa.add(_store.get(key));
+			}
+			return lsa;
 		}
-
-		return lsa;
 
 	}
 
