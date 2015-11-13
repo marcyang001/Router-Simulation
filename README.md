@@ -9,6 +9,12 @@ Group member:
 
 Need to do:
  
-* Dijkstra shortest path using linkState database
-* Testing
+* QUIT() -- DONE 
+* DISCONNECT() 
+* CONNECT() 
+
+* Testing ---> NEED TO THINK OF DIFFERENT SCENARIOS
+
+
+* Dijkstra shortest path using linkState database -- DONE
 * Code review
