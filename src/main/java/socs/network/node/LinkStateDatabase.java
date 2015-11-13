@@ -13,6 +13,8 @@ import java.util.Vector;
 
 public class LinkStateDatabase implements Serializable {
 
+	
+
 	// linkID => LSAInstance
 	HashMap<String, LSA> _store = new HashMap<String, LSA>();
 

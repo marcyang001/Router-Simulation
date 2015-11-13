@@ -5,6 +5,8 @@ import socs.network.message.LinkDescription;
 import socs.network.message.SOSPFPacket;
 import socs.network.util.Configuration;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -22,6 +24,8 @@ public class Router {
 
 	protected LinkStateDatabase lsd;
 	protected LSA lsa;
+	private final Lock lock = new ReentrantLock();
+	
 	RouterDescription rd = new RouterDescription();
 	// assuming that all routers are with 4 ports
 	Integer validPortNum = 0;
@@ -30,7 +34,8 @@ public class Router {
 	SignalMessage[] sendMessage = new SignalMessage[4];
 	Socket[] clients = new Socket[4];
 	ServerServiceThread serThread;
-
+	
+	
 	public Router(Configuration config, short portNum) {
 		rd.simulatedIPAddress = config.getString("socs.network.router.ip");
 		rd.processPortNumber = portNum;
@@ -196,7 +201,11 @@ public class Router {
 	/**
 	 * broadcast the updated LSA to the neighbors except to the one that sends the LSA
 	 *  **/
+<<<<<<< HEAD
 	protected void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
+=======
+	private void broadcastToNeighbors(String senderIP, SOSPFPacket updatePackage) {
+>>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 		
 		System.out.println("Broadcasting to neighbors from client");
 		ObjectOutputStream outBroadcast;
@@ -295,15 +304,25 @@ public class Router {
 						}
 						catch (SocketTimeoutException st) {
 							//if its socket timeout, delete the link from potential neighbors
+<<<<<<< HEAD
 							this.potentialNeighbors[i].router2.status = RouterStatus.FAIL;
+=======
+							potentialNeighbors[i].router2.status = RouterStatus.FAIL;
+>>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 							deleteLinks.add(potentialNeighbors[i]);
+							
 							
 						}
 						catch (IOException e) {
 							// TODO Auto-generated catch block
+<<<<<<< HEAD
 							System.out
 									.println("Client cannot send to the object to the server " + potentialNeighbors[i].router2.simulatedIPAddress);
 							this.potentialNeighbors[i].router2.status = RouterStatus.FAIL;	
+=======
+							System.out.println("Client cannot send to the object to the server " + potentialNeighbors[i].router2.simulatedIPAddress);		
+							potentialNeighbors[i].router2.status = RouterStatus.FAIL;
+>>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 							deleteLinks.add(potentialNeighbors[i]);
 							
 						}
@@ -319,8 +338,12 @@ public class Router {
 		// now try to receive the packets
 		for (int i = 0; i < potentialNeighbors.length; i++) {
 			if (potentialNeighbors[i] != null) {
+<<<<<<< HEAD
 				ObjectInputStream inStreamFromServer;
 				if (potentialNeighbors[i].router2.status == null) {
+=======
+				if (potentialNeighbors[i].router2.status != RouterStatus.FAIL) {
+>>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 						try {
 							/** The process of step 2 (client side) **/
 							// System.out.println("Client tried to receive stuff");
@@ -401,7 +424,10 @@ public class Router {
 								
 								
 								
+<<<<<<< HEAD
 								
+=======
+>>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 
 							} else {
 								potentialNeighbors[i].router2.status = RouterStatus.FAIL;
@@ -409,9 +435,10 @@ public class Router {
 								deleteLinks.add(potentialNeighbors[i]);
 
 							}
-							
-							//now try to synchronize the database:
+							System.out.println("START UPDATING THE DATABASE!!!!!!");
+							System.out.println(potentialNeighbors[i].router2.status);
 							/**
+							 * now try to synchronize the database:
 							 * 1. receive a packet with LSA of server
 							 * 2. update to the database
 							 * 3. broadcast to neighbors
@@ -419,9 +446,9 @@ public class Router {
 							 *  **/
 							
 							if (potentialNeighbors[i].router2.status == RouterStatus.TWO_WAY) {	
-									
+									System.out.println("ENTER HERE FOR UPDATE");
 								try {
-									if (ports[i] != null) {
+									//if (ports[i] != null) {
 										if (clients[i] != null) {
 											
 											inStreamFromServer = new ObjectInputStream(
@@ -440,10 +467,17 @@ public class Router {
 											
 											//ready for link state update
 											if (packetFromServerForUpdate.sospfType == 1) {
+<<<<<<< HEAD
 												
 												//update the database
 												 databaseUpdate(packetFromServerForUpdate);
 											
+=======
+												System.out.println("ENTER HERE FOR UPDATE 1");
+												//update the database
+												databaseUpdate(packetFromServerForUpdate); 
+												
+>>>>>>> e13b29b24efec6233c53467ef0c26babe8143fd8
 												//prepare its own package and send back to the server
 												
 												SOSPFPacket backToServerPacket = generateFullPacketUpdate((short) 1, packetFromServerForUpdate);
@@ -466,7 +500,7 @@ public class Router {
 											System.out.println("Client is disconnected");
 											break;
 										}
-									}
+									//}
 									
 								} catch (IOException e) {
 									// TODO Auto-generated catch block
@@ -513,7 +547,7 @@ public class Router {
 									.println("Client cannot receive the packet from server");
 						}
 
-					}
+					}// !FAIL
 				
 				
 				}
@@ -539,6 +573,50 @@ public class Router {
 		}
 		
 	}//end the start method 
+	
+	private boolean databaseUpdate(SOSPFPacket packetFromServerForUpdate) {
+		// try to update the LSA to the database
+		System.out.println("UPDATING THE DATABASE IN THE CLIENT");
+		boolean flag1 = false;
+		boolean flag2 = false;
+		
+		synchronized (this.lsd._store) {
+			//concurrency control
+		
+			for (int j = 0; j < packetFromServerForUpdate.lsaArray.size(); j++) {
+				if (packetFromServerForUpdate.lsaArray.get(j) != null) {
+
+					String senderOfLSA = packetFromServerForUpdate.lsaArray
+							.get(j).linkStateID;
+					int versionOfLSA = packetFromServerForUpdate.lsaArray
+							.get(j).lsaSeqNumber;
+					// check if the LSA already existed in the database
+					if (!lsd._store.containsKey(senderOfLSA)) {
+						// update to the database
+						lsd.updateLSA(senderOfLSA,
+								packetFromServerForUpdate.lsaArray.get(j));
+						flag1 = true;
+					}
+					// LSA already existed, check if its the newest version
+					else if (lsd._store.containsKey(senderOfLSA)) {
+						if (lsd._store.get(senderOfLSA).lsaSeqNumber < versionOfLSA) {
+							lsd.updateLSA(senderOfLSA,
+									packetFromServerForUpdate.lsaArray.get(j));
+							flag2 = true;
+						}
+
+					}
+				}
+
+			}
+			
+			this.lsd._store.notify();
+		}
+				
+		System.out.println(lsd.toString());	
+		return (flag1 || flag2);
+		
+	}
 
 	
 	private boolean databaseUpdate(SOSPFPacket incomingPacket) {
@@ -679,4 +757,3 @@ public class Router {
 	}
 
 }
-
