@@ -55,14 +55,14 @@ public class LinkStateDatabase implements Serializable {
 
 	public void updateLSA(String ipAddress, LSA lsa) {
 		synchronized(_store) {
-			if (_store.containsKey(ipAddress)) {
-				System.out.println("UPDATED HERE!!!!!ASDHAHS");
-				_store.remove(ipAddress);
+			//if (_store.containsKey(ipAddress)) {
+			//	System.out.println("UPDATED HERE!!!!!ASDHAHS");
+			//	_store.remove(ipAddress);
 				_store.put(ipAddress, lsa);
-			}
-			else {
-				_store.put(ipAddress, lsa);
-			}
+		//	}
+		//	else {
+		//		_store.put(ipAddress, lsa);
+			//}
 			
 		}
 	}

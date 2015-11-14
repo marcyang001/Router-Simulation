@@ -109,19 +109,23 @@ class PeriodMessage extends TimerTask {
 			List<Link> list = new ArrayList<Link>(Arrays.asList(m_router.ports));
 			List<Link> listPot = new ArrayList<Link>(Arrays.asList(m_router.potentialNeighbors));
 			for (int i = 0; i<m_router.ports.length; i++) {
-				if (m_router.ports[i].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
-					System.out.println("REMOVE THE LINK FROM PORT!!!!!!");
-					list.removeAll(Arrays.asList(m_router.ports[i]));
-					m_router.ports = list.toArray(m_router.ports);
-					for (int j = 0; j < m_router.potentialNeighbors.length; j++) {
-						if (m_router.potentialNeighbors[j].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
-							System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
-							listPot.removeAll(Arrays.asList(m_router.potentialNeighbors[j]));
-							m_router.potentialNeighbors = listPot.toArray(m_router.potentialNeighbors);
+				if (m_router.ports[i] != null) {
+						if (m_router.ports[i].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
+							System.out.println("REMOVE THE LINK FROM PORT!!!!!!");
+							list.removeAll(Arrays.asList(m_router.ports[i]));
+							m_router.ports = list.toArray(m_router.ports);
+							for (int j = 0; j < m_router.potentialNeighbors.length; j++) {
+								if (m_router.potentialNeighbors[j] != null) {
+									if (m_router.potentialNeighbors[j].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
+										System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
+										listPot.removeAll(Arrays.asList(m_router.potentialNeighbors[j]));
+										m_router.potentialNeighbors = listPot.toArray(m_router.potentialNeighbors);
+										break;
+									}
+								}
+							}
 							break;
 						}
-					}
-					break;
 				}
 			}
 			
@@ -166,9 +170,7 @@ class PeriodMessage extends TimerTask {
 			//7.
 			m_router.broadcastToNeighbors(neighbor.router2.simulatedIPAddress, newPacket, (short)4);
 			
-
-			System.out.println(m_router.lsa.toString());
-			System.out.println("DATABASE");
+			
 			System.out.println(m_router.lsd.toString());
 			
 			//8.

@@ -486,19 +486,24 @@ class ServerInputOutput implements Runnable {
 			if (ld.linkID.equals(lostNeighbor)) {
 				mm_lsa.links.remove(ld);
 				mm_lsa.lsaSeqNumber++;
-				//remove the potential neighbor and port as well
+				//remove the neighbor port
 				for (Link l: mm_ports) {
-					if (l.router2.simulatedIPAddress.equals(lostNeighbor)) {
-						list.removeAll(Arrays.asList(l));
-						mm_ports = list.toArray(mm_ports);
-						break;
+					if (l != null ) {
+						if (l.router2.simulatedIPAddress.equals(lostNeighbor)) {
+							list.removeAll(Arrays.asList(l));
+							mm_ports = list.toArray(mm_ports);
+							break;
+						}
 					}
 				}
+				//remove the potential neighbor link
 				for (Link potl: mm_potentialNeighbors) {
-					if (potl.router2.simulatedIPAddress.equals(lostNeighbor)){
-						listPot.removeAll(Arrays.asList(potl));
-						mm_potentialNeighbors = listPot.toArray(mm_potentialNeighbors);
-						break;
+					if (potl != null) {
+						if (potl.router2.simulatedIPAddress.equals(lostNeighbor)) {
+							listPot.removeAll(Arrays.asList(potl));
+							mm_potentialNeighbors = listPot.toArray(mm_potentialNeighbors);
+							break;
+						}
 					}
 				}
 			}
