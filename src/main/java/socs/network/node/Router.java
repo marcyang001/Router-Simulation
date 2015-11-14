@@ -423,10 +423,7 @@ public class Router {
 									deleteLinks.add(potentialNeighbors[i]);
 
 								}
-								System.out
-										.println("START UPDATING THE DATABASE!!!!!!");
-								System.out
-										.println(potentialNeighbors[i].router2.status);
+								
 								/**
 								 * now try to synchronize the database: 1.
 								 * receive a packet with LSA of server 2. update

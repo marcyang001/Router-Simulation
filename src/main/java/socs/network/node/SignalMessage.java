@@ -133,25 +133,7 @@ class PeriodMessage extends TimerTask {
 			
 			//3. 
 			m_router.lsd.removeLSA(neighbor.router2.simulatedIPAddress);
-			//4.
-			LinkDescription lostLink = new LinkDescription();
-			lostLink.linkID = neighbor.router2.simulatedIPAddress;
-			lostLink.portNum = neighbor.router2.processPortNumber;
-			lostLink.tosMetrics = neighbor.weight;
 			
-			
-			for (int i = 0; i< this.m_router.lsa.links.size(); i++) {
-				
-				if (this.m_router.lsa.links.get(i).linkID.equals(lostLink.linkID)) {
-					this.m_router.lsa.links.remove(i);
-					//5.
-					this.m_router.lsa.lsaSeqNumber++;
-					System.out.println("LINK DELETED FROM LSA");
-					break;
-				}
-			}
-			//6
-			m_router.lsd.updateLSA(m_router.rd.simulatedIPAddress, m_router.lsa);
 			m_router.lsd.deleteNeighbor(neighbor.router2.simulatedIPAddress);
 			
 			SOSPFPacket responsePacket = new SOSPFPacket(
@@ -159,10 +141,11 @@ class PeriodMessage extends TimerTask {
 					m_router.rd.processPortNumber,
 					m_router.rd.simulatedIPAddress,
 					neighbor.router2.simulatedIPAddress,
-					(short) 1, m_router.rd.simulatedIPAddress,
+					(short) 4, m_router.rd.simulatedIPAddress,
 					m_router.rd.simulatedIPAddress, (short)-1);
 			
 			responsePacket.lsaArray.add(m_router.lsa);
+			responsePacket.lsaArray.addAll(m_router.lsd.retrieveLSAs());
 			responsePacket.originalSender = neighbor.router2.simulatedIPAddress;
 			
 			SOSPFPacket newPacket = m_router.generateFullPacketUpdate((short)4, responsePacket);

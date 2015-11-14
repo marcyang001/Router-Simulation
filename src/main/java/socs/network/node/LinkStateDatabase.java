@@ -5,6 +5,7 @@ import socs.network.message.LinkDescription;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -74,12 +75,17 @@ public class LinkStateDatabase implements Serializable {
 	}
 	
 	public void deleteNeighbor(String ipAddress) {
+		
 		synchronized(_store) {
 			//delete the rest of the components in of the lost neighbor in the database
-			for (LSA lsaInDatabase : _store.values()) {
-				for (LinkDescription linkInDatabase : lsaInDatabase.links) {
-					if (linkInDatabase.linkID.equals(ipAddress)) {
-						lsaInDatabase.links.remove(linkInDatabase);
+			for (LSA lsa : _store.values()) {
+				List<LinkDescription> list = Collections.synchronizedList(lsa.links);
+				synchronized (list) {
+					for (LinkDescription l : list) {
+						if (l.linkID.equals(ipAddress)) {
+							list.remove(l);
+							lsa.lsaSeqNumber++;
+						}
 					}
 				}
 			}

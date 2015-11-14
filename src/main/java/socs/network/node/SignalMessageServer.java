@@ -105,43 +105,28 @@ public class SignalMessageServer implements Runnable{
 				List<Link> list = new ArrayList<Link>(Arrays.asList(m_server.mm_ports));
 				List<Link> listPot = new ArrayList<Link>(Arrays.asList(m_server.mm_potentialNeighbors));
 				for (int i = 0; i<m_server.mm_ports.length; i++) {
-					if (m_server.mm_ports[i].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
-						System.out.println("REMOVE THE LINK FROM PORT!!!!!!");
-						list.removeAll(Arrays.asList(m_server.mm_ports[i]));
-						m_server.mm_ports = list.toArray(m_server.mm_ports);
-						for (int j = 0; j < m_server.mm_potentialNeighbors.length; j++) {
-							if (m_server.mm_potentialNeighbors[j].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
-								System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
-								listPot.removeAll(Arrays.asList(m_server.mm_potentialNeighbors[j]));
-								m_server.mm_potentialNeighbors = listPot.toArray(m_server.mm_potentialNeighbors);
-								break;
+					if (m_server.mm_ports[i] != null) {
+						if (m_server.mm_ports[i].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
+							System.out.println("REMOVE THE LINK FROM PORT!!!!!!");
+							list.removeAll(Arrays.asList(m_server.mm_ports[i]));
+							m_server.mm_ports = list.toArray(m_server.mm_ports);
+							for (int j = 0; j < m_server.mm_potentialNeighbors.length; j++) {
+								if (m_server.mm_potentialNeighbors[j].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
+									System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
+									listPot.removeAll(Arrays.asList(m_server.mm_potentialNeighbors[j]));
+									m_server.mm_potentialNeighbors = listPot.toArray(m_server.mm_potentialNeighbors);
+									break;
+								}
 							}
+							break;
 						}
-						break;
 					}
 				}
 				
-				//3. 
 				m_server.mm_database.removeLSA(neighbor.router2.simulatedIPAddress);
-				//4.
-				LinkDescription lostLink = new LinkDescription();
-				lostLink.linkID = neighbor.router2.simulatedIPAddress;
-				lostLink.portNum = neighbor.router2.processPortNumber;
-				lostLink.tosMetrics = neighbor.weight;
 				
+				m_server.mm_database.deleteNeighbor(neighbor.router2.simulatedIPAddress);
 				
-				for (int i = 0; i< this.m_server.mm_lsa.links.size(); i++) {
-					
-					if (this.m_server.mm_lsa.links.get(i).linkID.equals(lostLink.linkID)) {
-						this.m_server.mm_lsa.links.remove(i);
-						//5.
-						this.m_server.mm_lsa.lsaSeqNumber++;
-						System.out.println("LINK DELETED FROM LSA");
-						break;
-					}
-				}
-				//6
-				m_server.mm_database.updateLSA(m_server.serverRouter.simulatedIPAddress, m_server.mm_lsa);
 				
 				SOSPFPacket responsePacket = new SOSPFPacket(
 						m_server.serverRouter.processIPAddress,
@@ -158,8 +143,6 @@ public class SignalMessageServer implements Runnable{
 				m_server.broadcastToNeighbors(neighbor.router2.simulatedIPAddress, responsePacket, (short)4);
 				
 
-				System.out.println(m_server.mm_lsa.toString());
-				System.out.println("DATABASE");
 				System.out.println(m_server.mm_database.toString());
 				
 				//8.
