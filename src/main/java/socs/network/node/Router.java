@@ -484,10 +484,8 @@ public class Router {
 
 											// spawn off the child thread that
 											// sends the message periodically
-											sendMessage[i] = new SignalMessage(
-													ports[i], clients[i], this);
-											Thread t = new Thread(
-													sendMessage[i]);
+											sendMessage[i] = new SignalMessage(ports[i], clients[i], this);
+											Thread t = new Thread(sendMessage[i]);
 											t.start();
 
 										} else {

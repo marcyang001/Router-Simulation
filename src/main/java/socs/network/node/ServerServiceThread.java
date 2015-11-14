@@ -137,7 +137,6 @@ class ServerInputOutput implements Runnable {
 	RouterDescription serverRouter;
 	Link[] mm_ports;
 	Link[] mm_potentialNeighbors;
-	SignalMessageServer[] sendHello = new SignalMessageServer[4];
 	ArrayList<SocketAddress> mm_socketAddr;
 	boolean flag;
 	LSA mm_lsa;
@@ -449,11 +448,6 @@ class ServerInputOutput implements Runnable {
 					System.out.println(mm_database.toString());
 					
 				}// end of if statement 
-				
-				
-				
-				
-				
 				
 				
 				Thread.currentThread().interrupt();
