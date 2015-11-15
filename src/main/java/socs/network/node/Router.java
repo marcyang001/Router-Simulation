@@ -145,9 +145,9 @@ public class Router {
 				System.out.println("FAIL TO SEND A DISCONNECT MESSAGE");
 			}
 			
-			//newPacket.originalSender = disconnectNode;
+			newPacket.originalSender = disconnectNode;
 			
-			//broadcastToNeighbors(disconnectNode, newPacket, (short)7);
+			broadcastToNeighbors(disconnectNode, newPacket, (short)7);
 			
 			//System.out.println("THEN: " + m_router.lsa.lsaSeqNumber);
 			System.out.println(lsd.toString());
