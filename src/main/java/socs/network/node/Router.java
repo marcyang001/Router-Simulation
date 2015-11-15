@@ -108,15 +108,12 @@ public class Router {
 			//remove the disconnected neighbor from LINKS
 			lsa.links.remove(isNeighbor);
 			lsa.lsaSeqNumber++;
-			deleteNeighborLink(portNumber);
 			lsd.updateLSA(rd.simulatedIPAddress, lsa);
+			deleteNeighborLink(portNumber);
+			//do the reverse
+			lsd.deleteLinkFromANeighbor(disconnectNode, rd.simulatedIPAddress);
 			
-			lsd.removeLSA(disconnectNode);
 			
-			lsd.deleteNeighbor(disconnectNode);
-			
-			//do a cleaning of the database --> remove all the nodes that cannot be reached
-			lsd.clean();
 			
 			if (ports[0] == null && potentialNeighbors[0]== null) {
 				lsd.cleanAll();
@@ -129,7 +126,7 @@ public class Router {
 					rd.processPortNumber,
 					rd.simulatedIPAddress,
 					disconnectNode,
-					(short) 4, rd.simulatedIPAddress,
+					(short) 6, rd.simulatedIPAddress,
 					rd.simulatedIPAddress, (short)-1);
 			
 			responsePacket.lsaArray.add(lsa);
@@ -137,7 +134,7 @@ public class Router {
 			responsePacket.originalSender = rd.simulatedIPAddress;
 			
 			
-			SOSPFPacket newPacket = generateFullPacketUpdate((short)4, responsePacket);
+			SOSPFPacket newPacket = generateFullPacketUpdate((short)6, responsePacket);
 			
 			ObjectOutputStream disconnectSignal = null;
 			try {
@@ -148,10 +145,9 @@ public class Router {
 				System.out.println("FAIL TO SEND A DISCONNECT MESSAGE");
 			}
 			
-			//7.
-			newPacket.originalSender = disconnectNode;
+			//newPacket.originalSender = disconnectNode;
 			
-			broadcastToNeighbors(disconnectNode, newPacket, (short)4);
+			//broadcastToNeighbors(disconnectNode, newPacket, (short)7);
 			
 			//System.out.println("THEN: " + m_router.lsa.lsaSeqNumber);
 			System.out.println(lsd.toString());

@@ -373,33 +373,25 @@ class ServerInputOutput implements Runnable {
 								
 					}
 						
-						//delete or disconnect a neighbor ==> 4, 5, 6
+						//quit a neighbor ==> 4, 5, 6
 					else if (packetFromClient.sospfType == 4){
-							
+						System.out.println("TYPE 4");
 							String lostNeighbor = packetFromClient.originalSender;
 							System.out.println("LOST NEIGHBOR 1: " + lostNeighbor);
 							String incomingSender = packetFromClient.neighborID;
-							/*
-							for (int i =0; i < mm_lsa.links.size(); i++) {
-								System.out.println("ENTER HERE!!!!: " + mm_lsa.links.get(i).linkID);
-								
-								if (mm_lsa.links.get(i).linkID.equals(lostNeighbor)) {
-									mm_lsa.links.remove(i);
-									mm_lsa.lsaSeqNumber++;
-									System.out.println("DELETED THE NEIGHBOR LSA: " + lostNeighbor);
-									break;
-									//remove the neighbor port
-								}
-							}*/
+							
 							
 							//delete the key of lost neighbor from the database 
 							// delete the neighbor link in its own LSA if there is any
 							deleteLostNeighborDatabase(lostNeighbor);
 							mm_database.deleteNeighbor(lostNeighbor);
 							databaseUpdate(packetFromClient);
-							mm_database.clean();
+							//mm_database.clean();
+							if (mm_ports[0] == null && mm_potentialNeighbors[0]== null) {
+								mm_database.cleanAll();
+							}
 							
-							
+							System.out.println("Original sender: " + packetFromClient.originalSender);
 							packetFromClient.lsaArray.addAll(mm_database.retrieveLSAs());
 							packetFromClient.lsaArray.add(mm_lsa);
 							
@@ -409,19 +401,59 @@ class ServerInputOutput implements Runnable {
 							
 					}
 					else if (packetFromClient.sospfType == 5) {
-							
+							System.out.println("TYPE 5");
+							System.out.println("SENDER: " + packetFromClient.srcProcessPort);
+							System.out.println("Original sender: " + packetFromClient.originalSender);
 							deleteLostNeighborDatabase(packetFromClient.originalSender);
-							mm_database.deleteNeighbor(packetFromClient.originalSender);
-							boolean updated = databaseUpdate(packetFromClient);
+ 							mm_database.deleteNeighbor(packetFromClient.originalSender);
+ 							boolean updated = databaseUpdate(packetFromClient);							
+ 					
+ 							if (updated) {
+ 								
+ 								broadcastToNeighbors(packetFromClient.neighborID, packetFromClient, (short)5);
+ 							}
+ 							
+ 							System.out.println(mm_database.toString());
+					
+					}
+						//6, 7 ==> for disconnect ==> check neighbor port before doing stuff
+					else if (packetFromClient.sospfType == 6) {
+						
+						String lostneighbor = packetFromClient.originalSender;
+								
+						deleteLostLink(lostneighbor);
+						boolean updated = databaseUpdate(packetFromClient);
+						
+						if (updated) {
+							System.out.println("UPDATED");
+							for (int i = 0; i < mm_lsa.links.size(); i++) {
+								if (mm_lsa.links.get(i).linkID.equals(lostneighbor)) {
+									mm_lsa.links.remove(i);
+									mm_lsa.lsaSeqNumber++;
+									break;
+								}
+							}
 							
-							mm_database.clean();
+							SOSPFPacket broadcastDisconnect = generateFullPackage((short)7, packetFromClient);
+							broadcastToNeighbors(lostneighbor, broadcastDisconnect, (short)7);
+
+						}
+						
+						System.out.println(mm_database.toString());
+						
+						
+					}else if (packetFromClient.sospfType == 7) {
+							
+							boolean updated = databaseUpdate(packetFromClient);							
+	 					
 							if (updated) {
 								
-								broadcastToNeighbors(packetFromClient.neighborID, packetFromClient, (short)5);
+								broadcastToNeighbors(packetFromClient.neighborID, packetFromClient, (short)7);
 								
 							}
-							System.out.println(mm_database.toString());
 					}
+						
+						
 					else {
 						
 						// prepare a packet with LSA of this current
@@ -478,6 +510,32 @@ class ServerInputOutput implements Runnable {
 
 	}
 	
+	private void deleteLostLink(String lostNeighbor) {
+		List<Link> list = new ArrayList<Link>(Arrays.asList(mm_ports));
+		List<Link> listPot = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
+		for (int i = 0; i<this.mm_ports.length; i++) {
+			if (this.mm_ports[i] != null) {
+				if (this.mm_ports[i].router2.simulatedIPAddress.equals(lostNeighbor)) {
+					System.out.println("REMOVE THE LINK FROM PORT (SERVER) !!!!!!");
+					list.removeAll(Arrays.asList(this.mm_ports[i]));
+					this.mm_ports = list.toArray(this.mm_ports);
+					for (int j = 0; j < this.mm_potentialNeighbors.length; j++) {
+						if (this.mm_potentialNeighbors[j].router2.simulatedIPAddress.equals(lostNeighbor)) {
+							System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS (SERVER)!!!!!!");
+							listPot.removeAll(Arrays.asList(this.mm_potentialNeighbors[j]));
+							this.mm_potentialNeighbors = listPot.toArray(this.mm_potentialNeighbors);
+							break;
+						}
+					}
+					break;
+				}
+			}
+		}
+	
+	}
+	
+	
+	
 	private void deleteLostNeighborDatabase(String lostNeighbor) {
 		// TODO Auto-generated method stub
 		if (mm_database._store.containsKey(lostNeighbor))
@@ -495,7 +553,6 @@ class ServerInputOutput implements Runnable {
 		List<Link> list = new ArrayList<Link>(Arrays.asList(mm_ports));
 		List<Link> listPot = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
 		for (int i = 0; i<this.mm_ports.length; i++) {
-			System.out.println("ENTER HERE!!!!: " + lostNeighbor);
 			if (this.mm_ports[i] != null) {
 				if (this.mm_ports[i].router2.simulatedIPAddress.equals(lostNeighbor)) {
 					System.out.println("REMOVE THE LINK FROM PORT (SERVER) !!!!!!");

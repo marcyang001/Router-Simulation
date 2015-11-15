@@ -142,19 +142,8 @@ public class SignalMessageServer implements Runnable{
 				m_server.mm_database.deleteNeighbor(neighbor.router2.simulatedIPAddress);
 				
 				//cleaning : remove all the nodes that cannot be reached
-				m_server.mm_database.clean();
-				for (String keys :m_server.mm_database._store.keySet()) {
-					synchronized(m_server.mm_database._store) {
-						if (!keys.equals(m_server.serverRouter.simulatedIPAddress)) {
-							String path = m_server.mm_database.getShortestPath(keys);
-							System.out.println("SERVER: " + path);
-							if (path == null) {
-								m_server.mm_database.removeLSA(keys);
-							}
-						}
-					}
-					
-				}
+				//m_server.mm_database.clean();
+				
 				
 				
 				if (m_server.mm_ports[0] == null && m_server.mm_potentialNeighbors[0]== null) {

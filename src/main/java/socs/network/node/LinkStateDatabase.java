@@ -21,11 +21,22 @@ public class LinkStateDatabase implements Serializable {
 	HashMap<String, LSA> _store = new HashMap<String, LSA>();
 
 	transient private RouterDescription rd = null;
-
+	//Dijkstra dijkstra;
 	public LinkStateDatabase(RouterDescription routerDescription) {
 		rd = routerDescription;
 		LSA l = initLinkStateDatabase();
 		_store.put(l.linkStateID, l);
+		//ArrayList<String> nodes = new ArrayList<String>();
+		//ArrayList<Edge> edges = new ArrayList<Edge>();
+		//for (String key : _store.keySet()) {
+		//	nodes.add(key);
+		//	for (LinkDescription ld : _store.get(key).links) {
+		//		Edge e = new Edge(key, ld.linkID, ld.tosMetrics);
+		//		edges.add(e);
+		//	}
+		//}
+		//dijkstra = new Dijkstra(nodes, edges);
+		
 	}
 
 	/**
@@ -86,6 +97,28 @@ public class LinkStateDatabase implements Serializable {
 	public void removeLSA(String ipAddress) {
 		synchronized(_store) {
 			_store.remove(ipAddress);
+		}
+	}
+	
+	public boolean deleteLinkFromANeighbor(String ipAddress, String lostLink) {
+		boolean status = true;
+		synchronized(_store) {
+			//delete the rest of the components in of the lost neighbor in the database
+			for (String ip : _store.keySet()) {
+				if (ip.equals(ipAddress)) {
+					List<LinkDescription> list = Collections.synchronizedList(_store.get(ip).links);
+					synchronized (list) {
+						for (LinkDescription l : list) {
+							if (l.linkID.equals(lostLink)) {
+								list.remove(l);
+								_store.get(ip).lsaSeqNumber++;
+								status = true;
+							}
+						}
+					}
+				}
+			}
+			return status;
 		}
 	}
 	
