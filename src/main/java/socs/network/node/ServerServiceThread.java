@@ -195,7 +195,7 @@ class ServerInputOutput implements Runnable {
 					inStream = new ObjectInputStream(server.getInputStream());
 					packetFromClient = (SOSPFPacket) inStream.readObject();
 					
-					//System.out.println("PACKET SENT FROM " +packetFromClient.neighborID);
+					//System.out.println("PACKET SENT FROM " +packetFromClient.routerID);
 					
 					//System.out.println("PACKET TYPE: " +packetFromClient.sospfType);
 					
@@ -377,13 +377,28 @@ class ServerInputOutput implements Runnable {
 					else if (packetFromClient.sospfType == 4){
 							
 							String lostNeighbor = packetFromClient.originalSender;
+							System.out.println("LOST NEIGHBOR 1: " + lostNeighbor);
 							String incomingSender = packetFromClient.neighborID;
+							/*
+							for (int i =0; i < mm_lsa.links.size(); i++) {
+								System.out.println("ENTER HERE!!!!: " + mm_lsa.links.get(i).linkID);
+								
+								if (mm_lsa.links.get(i).linkID.equals(lostNeighbor)) {
+									mm_lsa.links.remove(i);
+									mm_lsa.lsaSeqNumber++;
+									System.out.println("DELETED THE NEIGHBOR LSA: " + lostNeighbor);
+									break;
+									//remove the neighbor port
+								}
+							}*/
 							
 							//delete the key of lost neighbor from the database 
 							// delete the neighbor link in its own LSA if there is any
 							deleteLostNeighborDatabase(lostNeighbor);
 							mm_database.deleteNeighbor(lostNeighbor);
 							databaseUpdate(packetFromClient);
+							mm_database.clean();
+							
 							
 							packetFromClient.lsaArray.addAll(mm_database.retrieveLSAs());
 							packetFromClient.lsaArray.add(mm_lsa);
@@ -392,12 +407,14 @@ class ServerInputOutput implements Runnable {
 							
 							System.out.println(mm_database.toString());
 							
-						}
+					}
 					else if (packetFromClient.sospfType == 5) {
 							
 							deleteLostNeighborDatabase(packetFromClient.originalSender);
 							mm_database.deleteNeighbor(packetFromClient.originalSender);
 							boolean updated = databaseUpdate(packetFromClient);
+							
+							mm_database.clean();
 							if (updated) {
 								
 								broadcastToNeighbors(packetFromClient.neighborID, packetFromClient, (short)5);
@@ -405,6 +422,19 @@ class ServerInputOutput implements Runnable {
 							}
 							System.out.println(mm_database.toString());
 					}
+					else {
+						
+						// prepare a packet with LSA of this current
+						// router and send it back to client
+						SOSPFPacket serverPacketForUpdate = generateFullPackage(
+								(short)0, packetFromClient);
+
+						outStream = new ObjectOutputStream(server.getOutputStream());
+
+						outStream.writeObject(serverPacketForUpdate);
+						
+					}
+					
 					
 						
 						
@@ -429,39 +459,7 @@ class ServerInputOutput implements Runnable {
 				 * 7. send the updated LSA to the rest of the neighbors
 				 * 8. kill the current thread
 				 *  **/
-				/*
-				if(packetFromClient != null) {
-					String lostNeighbor =  packetFromClient.neighborID;
-					System.out.println("THIS IS THE LOST CLIENT:" + lostNeighbor);
-					
-					
-					deleteLostNeighborDatabase(lostNeighbor);
-					//mm_database.updateLSA(serverRouter.simulatedIPAddress, mm_lsa);
-					
-					mm_database.deleteNeighbor(lostNeighbor);
-					
-					SOSPFPacket responsePacket = new SOSPFPacket(
-							serverRouter.processIPAddress,
-							serverRouter.processPortNumber,
-							serverRouter.simulatedIPAddress,
-							lostNeighbor,
-							(short) 4, serverRouter.simulatedIPAddress,
-							serverRouter.simulatedIPAddress, (short)-1);
-					
-					responsePacket.lsaArray.add(mm_lsa);
-					responsePacket.lsaArray.addAll(mm_database.retrieveLSAs());
-					responsePacket.originalSender = lostNeighbor;
-					
-					SOSPFPacket newPacket = generateFullPackage((short)4, responsePacket);
-					
-					//broadcastToNeighbors(lostNeighbor, newPacket, (short)4);
-					
-					
-					System.out.println(mm_database.toString());
-					
-				}// end of if statement 
 				
-				*/
 				Thread.currentThread().interrupt();
 				break;
 				
@@ -485,37 +483,36 @@ class ServerInputOutput implements Runnable {
 		if (mm_database._store.containsKey(lostNeighbor))
 			mm_database.removeLSA(lostNeighbor);
 		
+		for (int i =0; i < mm_lsa.links.size(); i++) {
+			if (mm_lsa.links.get(i).linkID.equals(lostNeighbor)) {
+				mm_lsa.links.remove(i);
+				mm_lsa.lsaSeqNumber++;
+				break;
+				//remove the neighbor port
+			}
+		}
+
 		List<Link> list = new ArrayList<Link>(Arrays.asList(mm_ports));
 		List<Link> listPot = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
-		for (LinkDescription ld : mm_lsa.links) {
-			
-			if (ld.linkID.equals(lostNeighbor)) {
-				mm_lsa.links.remove(ld);
-				mm_lsa.lsaSeqNumber++;
-				//remove the neighbor port
-				for (Link l: mm_ports) {
-					if (l != null ) {
-						if (l.router2.simulatedIPAddress.equals(lostNeighbor)) {
-							list.removeAll(Arrays.asList(l));
-							mm_ports = list.toArray(mm_ports);
+		for (int i = 0; i<this.mm_ports.length; i++) {
+			System.out.println("ENTER HERE!!!!: " + lostNeighbor);
+			if (this.mm_ports[i] != null) {
+				if (this.mm_ports[i].router2.simulatedIPAddress.equals(lostNeighbor)) {
+					System.out.println("REMOVE THE LINK FROM PORT (SERVER) !!!!!!");
+					list.removeAll(Arrays.asList(this.mm_ports[i]));
+					this.mm_ports = list.toArray(this.mm_ports);
+					for (int j = 0; j < this.mm_potentialNeighbors.length; j++) {
+						if (this.mm_potentialNeighbors[j].router2.simulatedIPAddress.equals(lostNeighbor)) {
+							System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS (SERVER)!!!!!!");
+							listPot.removeAll(Arrays.asList(this.mm_potentialNeighbors[j]));
+							this.mm_potentialNeighbors = listPot.toArray(this.mm_potentialNeighbors);
 							break;
 						}
 					}
-				}
-				//remove the potential neighbor link
-				for (Link potl: mm_potentialNeighbors) {
-					if (potl != null) {
-						if (potl.router2.simulatedIPAddress.equals(lostNeighbor)) {
-							listPot.removeAll(Arrays.asList(potl));
-							mm_potentialNeighbors = listPot.toArray(mm_potentialNeighbors);
-							break;
-						}
-					}
+					break;
 				}
 			}
 		}
-		
-		
 	}
 	@SuppressWarnings({ "resource" })
 	private boolean checkNeighbor(String originalSender, SOSPFPacket updatePackage) {

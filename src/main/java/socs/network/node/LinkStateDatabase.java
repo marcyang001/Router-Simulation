@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 public class LinkStateDatabase implements Serializable {
@@ -32,7 +33,7 @@ public class LinkStateDatabase implements Serializable {
 	 * given IP address
 	 */
 	String getShortestPath(String destinationIP) {
-		synchronized(_store) {
+		
 		ArrayList<String> nodes = new ArrayList<String>();
 		ArrayList<Edge> edges = new ArrayList<Edge>();
 		for (String key : _store.keySet()) {
@@ -43,9 +44,8 @@ public class LinkStateDatabase implements Serializable {
 			}
 		}
 		Dijkstra dijkstra = new Dijkstra(nodes, edges);
-	    dijkstra.execute(rd.simulatedIPAddress);
-	    return dijkstra.getPath(destinationIP);
-		}
+		dijkstra.execute(rd.simulatedIPAddress);
+		return dijkstra.getPath(destinationIP);
 	}
 
 
@@ -53,18 +53,33 @@ public class LinkStateDatabase implements Serializable {
 	public RouterDescription getRd() {
 		return this.rd;
 	}
+	
+	/**
+	 * delete every nodes that cannot be reached by the router
+	 * 
+	 * **/
+	public void clean() {
+		LinkedList<String> list = new LinkedList<String>();
+		System.out.println("HOST:" + rd.simulatedIPAddress);
+		synchronized(_store) {
+			for (String ip: _store.keySet()) {
+				list.add(ip);
+			}
+			for (int i = list.size()-1; i>=0; i--) {
+				if (!list.get(i).equals(rd.simulatedIPAddress)) {
+					System.out.println(list.get(i));
+					System.out.println(getShortestPath(list.get(i)));
+					if (getShortestPath(list.get(i)) == null) {
+						_store.remove(list.get(i));
+					}
+				}
+			}
+		}
+	}
 
 	public void updateLSA(String ipAddress, LSA lsa) {
 		synchronized(_store) {
-			//if (_store.containsKey(ipAddress)) {
-			//	System.out.println("UPDATED HERE!!!!!ASDHAHS");
-			//	_store.remove(ipAddress);
-				_store.put(ipAddress, lsa);
-		//	}
-		//	else {
-		//		_store.put(ipAddress, lsa);
-			//}
-			
+			_store.put(ipAddress, lsa);
 		}
 	}
 	
@@ -74,8 +89,10 @@ public class LinkStateDatabase implements Serializable {
 		}
 	}
 	
-	public void deleteNeighbor(String ipAddress) {
-		
+	
+	//delete the lost neighbor everywhere in the database
+	public boolean deleteNeighbor(String ipAddress) {
+		boolean neighborDeleted = false;
 		synchronized(_store) {
 			//delete the rest of the components in of the lost neighbor in the database
 			for (LSA lsa : _store.values()) {
@@ -85,10 +102,12 @@ public class LinkStateDatabase implements Serializable {
 						if (l.linkID.equals(ipAddress)) {
 							list.remove(l);
 							lsa.lsaSeqNumber++;
+							neighborDeleted = true;
 						}
 					}
 				}
 			}
+			return neighborDeleted;
 		}
 	}
 	
@@ -131,5 +150,23 @@ public class LinkStateDatabase implements Serializable {
 		}
 		return sb.toString();
 	}
+	
+	/**Clean everything in the database **/
+	public void cleanAll() {
+		// TODO Auto-generated method stub
+		LinkedList<String> list = new LinkedList<String>();
+		
+		synchronized(_store) {
+			for (String ip: _store.keySet()) {
+				list.add(ip);
+			}
+			for (int i = list.size()-1; i>=0; i--) {
+				if (!list.get(i).equals(rd.simulatedIPAddress)) {
+						_store.remove(list.get(i));
+				}
+			}
+		}
+		
+	}
 
-}
+}//end of the class 

@@ -60,7 +60,20 @@ public class Router {
 		System.out.println(s);
 
 	}
-
+	
+	private int isNeighbor(short portNumber) {
+		int isNeighbor = -1;
+		for (int i = 0; i< lsa.links.size(); i++) {
+			if (lsa.links.get(i).portNum == portNumber) {
+				isNeighbor = i;
+			}
+		}
+		
+		return isNeighbor;
+	}
+	
+	
+	
 	/**
 	 * disconnect with the router identified by the given destination ip address
 	 * Notice: this command should trigger the synchronization of database
@@ -69,7 +82,85 @@ public class Router {
 	 *            the port number which the link attaches at
 	 */
 	private void processDisconnect(short portNumber) {
+		Socket client = null;
+		
+		
+		//find if the port exists as a neighbor
+		int isNeighbor = isNeighbor(portNumber);
+		if (isNeighbor >=0) {
+			
+			
+			//store the disconnected neighbor IP
+			LinkDescription disconnectedLink = lsa.links.get(isNeighbor);
+			String disconnectNode = lsa.links.get(isNeighbor).linkID;
+			System.out.println("PORT NUMBER " +portNumber + " IS A NEIGHBOR: " + disconnectNode);
+			
+			try {
+				client = new Socket("localhost", portNumber);
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			//remove the disconnected neighbor from LINKS
+			lsa.links.remove(isNeighbor);
+			lsa.lsaSeqNumber++;
+			deleteNeighborLink(portNumber);
+			lsd.updateLSA(rd.simulatedIPAddress, lsa);
+			
+			lsd.removeLSA(disconnectNode);
+			
+			lsd.deleteNeighbor(disconnectNode);
+			
+			//do a cleaning of the database --> remove all the nodes that cannot be reached
+			lsd.clean();
+			
+			if (ports[0] == null && potentialNeighbors[0]== null) {
+				lsd.cleanAll();
+			}
 
+			
+			
+			SOSPFPacket responsePacket = new SOSPFPacket(
+					rd.processIPAddress,
+					rd.processPortNumber,
+					rd.simulatedIPAddress,
+					disconnectNode,
+					(short) 4, rd.simulatedIPAddress,
+					rd.simulatedIPAddress, (short)-1);
+			
+			responsePacket.lsaArray.add(lsa);
+			responsePacket.lsaArray.addAll(lsd.retrieveLSAs());
+			responsePacket.originalSender = rd.simulatedIPAddress;
+			
+			
+			SOSPFPacket newPacket = generateFullPacketUpdate((short)4, responsePacket);
+			
+			ObjectOutputStream disconnectSignal = null;
+			try {
+				disconnectSignal = new ObjectOutputStream(client.getOutputStream());
+				disconnectSignal.writeObject(newPacket);
+			}
+			catch (IOException e) {
+				System.out.println("FAIL TO SEND A DISCONNECT MESSAGE");
+			}
+			
+			//7.
+			newPacket.originalSender = disconnectNode;
+			
+			broadcastToNeighbors(disconnectNode, newPacket, (short)4);
+			
+			//System.out.println("THEN: " + m_router.lsa.lsaSeqNumber);
+			System.out.println(lsd.toString());
+			
+			
+		}
+		else {
+			System.out.println("PORT NUMBER: " + portNumber+ " IS NOT A CONNECTED NEIGHBOR");
+		}
 	}
 
 	/**
@@ -133,7 +224,7 @@ public class Router {
 	 */
 	private void processAttach(String processIP, short processPort,
 			String simulatedIP, short weight) {
-
+		/**
 		// accept() will block until a client connects to the server.
 		// If execution reaches this point, then it means that a client
 		// socket has been accepted.
@@ -146,6 +237,7 @@ public class Router {
 		// Start a Client Service thread
 		// router 1 = localhost
 		// router 2 = router you are sending to
+		**/
 		int isAvail = isRouterPortAlreadyTaken(simulatedIP, rd.simulatedIPAddress, potentialNeighbors);
 		validPortNum = isAvail;
 		if (isAvail >= 0) {
@@ -305,7 +397,6 @@ public class Router {
 							// potential neighbors
 							this.potentialNeighbors[i].router2.status = RouterStatus.FAIL;
 
-							potentialNeighbors[i].router2.status = RouterStatus.FAIL;
 							deleteLinks.add(potentialNeighbors[i]);
 
 						} catch (IOException e) {
@@ -314,10 +405,7 @@ public class Router {
 									.println("Client cannot send to the object to the server "
 											+ potentialNeighbors[i].router2.simulatedIPAddress);
 							this.potentialNeighbors[i].router2.status = RouterStatus.FAIL;
-							System.out
-									.println("Client cannot send to the object to the server "
-											+ potentialNeighbors[i].router2.simulatedIPAddress);
-							potentialNeighbors[i].router2.status = RouterStatus.FAIL;
+							
 							deleteLinks.add(potentialNeighbors[i]);
 
 						}
@@ -602,6 +690,34 @@ public class Router {
 		return (flag1 || flag2);
 		
 	}
+	public boolean deleteNeighborLink(short portNumber) {
+		List<Link> list = new ArrayList<Link>(Arrays.asList(ports));
+		List<Link> listPot = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
+		boolean status = false;
+		for (int i = 0; i< ports.length; i++) {
+			if (ports[i] != null) {
+				if (ports[i].router2.processPortNumber == portNumber) {
+					System.out.println("REMOVE THE NEIGHBOR LINK FROM PORT!!!!!!");
+					list.removeAll(Arrays.asList(ports[i]));
+					ports = list.toArray(ports);
+					for (int j = 0; j < potentialNeighbors.length; j++) {
+						if (potentialNeighbors[j] != null) {
+							if (potentialNeighbors[j].router2.processPortNumber == portNumber) {
+								System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
+								listPot.removeAll(Arrays.asList(potentialNeighbors[j]));
+								potentialNeighbors = listPot.toArray(potentialNeighbors);
+								break;
+							}
+						}	
+					}
+					status = true;
+					
+					break;
+				}
+			}
+		}
+		return status;
+	}
 	
 	
 	
@@ -681,8 +797,6 @@ public class Router {
 					String[] cmdLine = command.split(" ");
 					processAttach(cmdLine[1], Short.parseShort(cmdLine[2]), 
 							cmdLine[3], Short.parseShort(cmdLine[4]));
-					
-
 				} else if (command.equals("start")) {
 					processStart();
 				} else if (command.equals("connect ")) {
@@ -692,7 +806,10 @@ public class Router {
 				} else if (command.equals("neighbors")) {
 					// output neighbors
 					processNeighbors();
-				} else {
+				} else if (command.equals("check")) {
+					processCheck();
+					
+				}else {
 					// invalid command
 					System.out.println("Invalid command. Quitting");
 					break;
@@ -705,6 +822,16 @@ public class Router {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	/**helper function for testing, not necessary **/
+	private void processCheck() {
+		// TODO Auto-generated method stub
+		System.out.println("CURRENT LSA OF THE ROUTER: ");
+		System.out.println(lsa.toString());
+		System.out.println("CURRENT DATABASE OF THE ROUTER:");
+		System.out.println(lsd.toString());
+		
 	}
 
 }

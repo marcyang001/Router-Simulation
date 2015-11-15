@@ -76,7 +76,7 @@ class PeriodMessage extends TimerTask {
 					m_router.rd.processPortNumber,
 					m_router.rd.simulatedIPAddress,
 					neighbor.router2.simulatedIPAddress,
-					(short) 0, m_router.rd.simulatedIPAddress,
+					(short) 10, m_router.rd.simulatedIPAddress,
 					m_router.rd.simulatedIPAddress, (short)-1);
 			//sends the hello message periodically
 			sendHello.writeObject(responsePacket);
@@ -106,35 +106,56 @@ class PeriodMessage extends TimerTask {
 			System.out.println("NEIGHBOR IS LOST!!!!!");
 			
 			//2 
+			m_router.deleteNeighborLink(neighbor.router2.processPortNumber);
+			/*
 			List<Link> list = new ArrayList<Link>(Arrays.asList(m_router.ports));
 			List<Link> listPot = new ArrayList<Link>(Arrays.asList(m_router.potentialNeighbors));
 			for (int i = 0; i<m_router.ports.length; i++) {
 				if (m_router.ports[i] != null) {
-						if (m_router.ports[i].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
-							System.out.println("REMOVE THE LINK FROM PORT!!!!!!");
-							list.removeAll(Arrays.asList(m_router.ports[i]));
-							m_router.ports = list.toArray(m_router.ports);
-							for (int j = 0; j < m_router.potentialNeighbors.length; j++) {
-								if (m_router.potentialNeighbors[j] != null) {
-									if (m_router.potentialNeighbors[j].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
-										System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
-										listPot.removeAll(Arrays.asList(m_router.potentialNeighbors[j]));
-										m_router.potentialNeighbors = listPot.toArray(m_router.potentialNeighbors);
-										break;
-									}
+					if (m_router.ports[i].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {
+						System.out.println("REMOVE THE LINK FROM PORT!!!!!!");
+						list.removeAll(Arrays.asList(m_router.ports[i]));
+						m_router.ports = list.toArray(m_router.ports);
+						for (int j = 0; j < m_router.potentialNeighbors.length; j++) {
+							if (m_router.potentialNeighbors[j] != null) {
+								if (m_router.potentialNeighbors[j].router2.simulatedIPAddress.equals(neighbor.router2.simulatedIPAddress)) {										System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
+									listPot.removeAll(Arrays.asList(m_router.potentialNeighbors[j]));
+									m_router.potentialNeighbors = listPot.toArray(m_router.potentialNeighbors);
+									break;
 								}
-							}
-							break;
+							}	
 						}
+						break;
+					}
+				}
+			}
+			*/
+			
+			
+			//3.
+			//remove the link from LSA, but dont increment seq number because it will be incremented 
+			//in neighborDelete in database
+			for (LinkDescription l: m_router.lsa.links) {
+				if(l.linkID.equals(neighbor.router2.simulatedIPAddress)) {
+					m_router.lsa.links.remove(l);
+					m_router.lsa.lsaSeqNumber++;
+					break;
 				}
 			}
 			
+			m_router.lsd.updateLSA(m_router.rd.simulatedIPAddress, m_router.lsa);
 			
-			
-			//3. 
 			m_router.lsd.removeLSA(neighbor.router2.simulatedIPAddress);
 			
 			m_router.lsd.deleteNeighbor(neighbor.router2.simulatedIPAddress);
+			//System.out.println("NOW: " + m_router.lsa.lsaSeqNumber);
+			
+			//do a cleaning of the database --> remove all the nodes that cannot be reached
+			m_router.lsd.clean();
+			
+			if (m_router.ports[0] == null && m_router.potentialNeighbors[0]== null) {
+				m_router.lsd.cleanAll();
+			}
 			
 			SOSPFPacket responsePacket = new SOSPFPacket(
 					m_router.rd.processIPAddress,
@@ -153,7 +174,7 @@ class PeriodMessage extends TimerTask {
 			//7.
 			m_router.broadcastToNeighbors(neighbor.router2.simulatedIPAddress, newPacket, (short)4);
 			
-			
+			//System.out.println("THEN: " + m_router.lsa.lsaSeqNumber);
 			System.out.println(m_router.lsd.toString());
 			
 			//8.
