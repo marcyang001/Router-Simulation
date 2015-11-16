@@ -34,7 +34,7 @@ public class Router {
 	SignalMessage[] sendMessage = new SignalMessage[4];
 	Socket[] clients = new Socket[4];
 	ServerServiceThread serThread;
-	
+	Thread[] t = new Thread[4]; //set the timers for each neighbor
 	
 	public Router(Configuration config, short portNum) {
 		rd.simulatedIPAddress = config.getString("socs.network.router.ip");
@@ -145,8 +145,9 @@ public class Router {
 				System.out.println("FAIL TO SEND A DISCONNECT MESSAGE");
 			}
 			
-			newPacket.originalSender = disconnectNode;
 			
+			
+			newPacket.originalSender = disconnectNode;
 			broadcastToNeighbors(disconnectNode, newPacket, (short)7);
 			
 			//System.out.println("THEN: " + m_router.lsa.lsaSeqNumber);
@@ -566,8 +567,9 @@ public class Router {
 											// spawn off the child thread that
 											// sends the message periodically
 											sendMessage[i] = new SignalMessage(ports[i], clients[i], this);
-											Thread t = new Thread(sendMessage[i]);
-											t.start();
+											
+											t[i] = new Thread(sendMessage[i]);
+											t[i].start();
 
 										} else {
 											System.out
@@ -687,6 +689,7 @@ public class Router {
 		
 	}
 	public boolean deleteNeighborLink(short portNumber) {
+		
 		List<Link> list = new ArrayList<Link>(Arrays.asList(ports));
 		List<Link> listPot = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
 		boolean status = false;
@@ -702,6 +705,8 @@ public class Router {
 								System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
 								listPot.removeAll(Arrays.asList(potentialNeighbors[j]));
 								potentialNeighbors = listPot.toArray(potentialNeighbors);
+								
+								t[j] = null;
 								break;
 							}
 						}	
@@ -814,7 +819,7 @@ public class Router {
 				SOSPFPacket respPacket = (SOSPFPacket) inStream.readObject();
 				
 				if (respPacket.sospfType == 0) {
-					System.out.println("TWO WAY");
+					//System.out.println("TWO WAY");
 					potentialNeighbors[freePos].router2.status = RouterStatus.TWO_WAY;
 					ports[freeIndex].router2.status = RouterStatus.TWO_WAY;
 					//second hello 
@@ -842,7 +847,13 @@ public class Router {
 					// neighbors with its own LSA
 					broadcastToNeighbors(respPacket.neighborID,
 							backToServerPacket, (short)2);
+					
+					sendMessage[freeIndex] = new SignalMessage(ports[freeIndex], connect, this);
+					
+					t[freeIndex] = new Thread(sendMessage[freeIndex]);
+					t[freeIndex].start();
 				}
+				
 				
 				
 			} catch (UnknownHostException e) {

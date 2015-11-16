@@ -141,6 +141,7 @@ class ServerInputOutput implements Runnable {
 	ArrayList<SocketAddress> mm_socketAddr;
 	boolean flag;
 	LSA mm_lsa;
+	Thread[] t = new Thread[4]; //threads for timers
 	
 	public ServerInputOutput(Socket server, RouterDescription serverRouter,
 			Link[] ports, Link[] m_potentialNeighbors, ArrayList<SocketAddress> socketAddr, LinkStateDatabase m_lsd, LSA m_lsa) {
@@ -303,9 +304,10 @@ class ServerInputOutput implements Runnable {
 								databaseUpdate(packetFromClient);
 								sospftype = 1;
 							
+								//spawn the timer
 								sm[routerPosition] = new SignalMessageServer(mm_ports[routerPosition], this);
-								Thread t = new Thread(sm[routerPosition]);
-								t.start();
+								t[routerPosition] = new Thread(sm[routerPosition]);
+								t[routerPosition].start();
 							
 							}
 
@@ -524,6 +526,7 @@ class ServerInputOutput implements Runnable {
 							System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS (SERVER)!!!!!!");
 							listPot.removeAll(Arrays.asList(this.mm_potentialNeighbors[j]));
 							this.mm_potentialNeighbors = listPot.toArray(this.mm_potentialNeighbors);
+							t[j] = null;
 							break;
 						}
 					}
@@ -531,7 +534,6 @@ class ServerInputOutput implements Runnable {
 				}
 			}
 		}
-	
 	}
 	
 	
