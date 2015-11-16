@@ -91,7 +91,7 @@ public class Router {
 			
 			
 			//store the disconnected neighbor IP
-			LinkDescription disconnectedLink = lsa.links.get(isNeighbor);
+			//LinkDescription disconnectedLink = lsa.links.get(isNeighbor);
 			String disconnectNode = lsa.links.get(isNeighbor).linkID;
 			System.out.println("PORT NUMBER " +portNumber + " IS A NEIGHBOR: " + disconnectNode);
 			
@@ -785,7 +785,6 @@ public class Router {
 		int freeIndex = isRouterPortAlreadyTaken(simulatedIP, rd.simulatedIPAddress, ports);
 		int freePos = isRouterPortAlreadyTaken(simulatedIP, rd.simulatedIPAddress, potentialNeighbors);
 		if (freeIndex >=0 && freePos >= 0) {
-			System.out.println("CAN CONNECT TO ANOTHER ROUTER");
 			
 			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP);
 			//build the link 
@@ -871,6 +870,9 @@ public class Router {
 			
 			
 			
+		}
+		else {
+			System.out.println("PORTS FOR THIS ROUTER ARE FULL");
 		}
 	}
 

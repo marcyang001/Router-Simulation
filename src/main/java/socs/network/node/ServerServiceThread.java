@@ -526,10 +526,11 @@ class ServerInputOutput implements Runnable {
 							System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS (SERVER)!!!!!!");
 							listPot.removeAll(Arrays.asList(this.mm_potentialNeighbors[j]));
 							this.mm_potentialNeighbors = listPot.toArray(this.mm_potentialNeighbors);
-							t[j] = null;
 							break;
 						}
 					}
+					//kill the timer
+					t[i] = null;
 					break;
 				}
 			}
