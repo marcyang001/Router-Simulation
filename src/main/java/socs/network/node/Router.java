@@ -919,7 +919,10 @@ public class Router {
 				} else if (command.equals("check")) {
 					processCheck();
 					
-				}else {
+				}else if (command.equals("source")) {
+					processSource();
+				}
+				else {
 					// invalid command
 					System.out.println("Invalid command. Quitting");
 					break;
@@ -932,6 +935,13 @@ public class Router {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	/**helper function for testing, not necessary **/
+	private void processSource() {
+		// TODO Auto-generated method stub
+		System.out.println("Current source is: " + rd.simulatedIPAddress);
+		
 	}
 
 	/**helper function for testing, not necessary **/
