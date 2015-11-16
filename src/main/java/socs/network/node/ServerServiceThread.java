@@ -263,8 +263,7 @@ class ServerInputOutput implements Runnable {
 										+ r2.status);
 
 								// send back to the client
-								outStream = new ObjectOutputStream(
-										server.getOutputStream());
+								outStream = new ObjectOutputStream(server.getOutputStream());
 								// create a server packet and send it back to
 								// the
 								// client
@@ -327,8 +326,9 @@ class ServerInputOutput implements Runnable {
 						// broadcast received and the new packet received for
 						// update => the sospftype 1 , 2, 3
 					else if (packetFromClient.sospfType == 1) {
-							
-							
+								
+								//System.out.println("TYPE 1");
+								
 								String incomingRouterIP = packetFromClient.neighborID;
 								packetFromClient.originalSender = packetFromClient.neighborID;
 								

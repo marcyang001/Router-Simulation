@@ -718,6 +718,7 @@ public class Router {
 	
 	
 	
+	
 	public SOSPFPacket generateFullPacketUpdate(short type, SOSPFPacket incomingPacket) {
 		//create the package that only contains the LSA of this router
 		SOSPFPacket serverPacketForUpdate = new SOSPFPacket(
@@ -735,6 +736,31 @@ public class Router {
 				
 				
 	}
+	/**
+	 * 
+	 * @param l
+	 * @param posInPort: index position in port array 
+	 * @param posInPot: index position in potentialNeighbor array 
+	 * 
+	 * returns the LinkDescription object of new neighbor
+	 * @return 
+	 */
+	
+	private LinkDescription addNeighborLink(Link l, int posInPort, int posInPot) {
+		
+		this.potentialNeighbors[posInPot] = l;
+		this.ports[posInPort] = l;
+		
+		LinkDescription newNeighbor = new LinkDescription();
+		newNeighbor.linkID = l.router2.simulatedIPAddress;
+		newNeighbor.portNum = l.router2.processPortNumber;
+		newNeighbor.tosMetrics = l.weight;
+		
+		return newNeighbor;
+	}
+	
+	
+	
 	
 	
 	/**
@@ -747,9 +773,97 @@ public class Router {
 	 */
 	private void processConnect(String processIP, short processPort,
 			String simulatedIP, short weight) {
+		Socket connect = null;
+		ObjectOutputStream outStream = null;
+		ObjectInputStream inStream = null;
 		
+		int freeIndex = isRouterPortAlreadyTaken(simulatedIP, rd.simulatedIPAddress, ports);
+		int freePos = isRouterPortAlreadyTaken(simulatedIP, rd.simulatedIPAddress, potentialNeighbors);
+		if (freeIndex >=0 && freePos >= 0) {
+			System.out.println("CAN CONNECT TO ANOTHER ROUTER");
+			
+			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP);
+			//build the link 
+			Link l = new Link(rd, r2, weight);
+			
+			
+			LinkDescription nl = addNeighborLink(l, freeIndex, freePos);
+			
+			lsa.links.add(nl);
+			lsa.lsaSeqNumber++;
+			
+			
+			try {
+				connect = new Socket(processIP, processPort);
+				
+				SOSPFPacket clientPacket = new SOSPFPacket(
+						rd.processIPAddress,
+						rd.processPortNumber,
+						rd.simulatedIPAddress,
+						potentialNeighbors[freePos].router2.simulatedIPAddress,
+						(short) 0, rd.simulatedIPAddress,
+						rd.simulatedIPAddress,
+						potentialNeighbors[freePos].weight);
+				
+				SOSPFPacket connectPackage = this.generateFullPacketUpdate((short)0, clientPacket);
+				//send the first packet for HELLO message
+				outStream = new ObjectOutputStream(connect.getOutputStream());
+				outStream.writeObject(connectPackage);
+				//receive back the LSA from the server
+				inStream = new ObjectInputStream(connect.getInputStream());
+				SOSPFPacket respPacket = (SOSPFPacket) inStream.readObject();
+				
+				if (respPacket.sospfType == 0) {
+					System.out.println("TWO WAY");
+					potentialNeighbors[freePos].router2.status = RouterStatus.TWO_WAY;
+					ports[freeIndex].router2.status = RouterStatus.TWO_WAY;
+					//second hello 
+					outStream = new ObjectOutputStream(connect.getOutputStream());
+					outStream.writeObject(connectPackage);
+				}
+				
+				//receive this after second hello
+				inStream = new ObjectInputStream(connect.getInputStream());
+				respPacket = (SOSPFPacket) inStream.readObject();
+				if (respPacket.sospfType == 1) {
+					
+					databaseUpdate(respPacket);
+					
+					// prepare its own package and
+					// send back to the server
 
+					SOSPFPacket backToServerPacket = generateFullPacketUpdate(
+							(short) 1,
+							respPacket);
+					outStream = new ObjectOutputStream(connect.getOutputStream());
+					outStream.writeObject(backToServerPacket);
+
+					// forward the package to its
+					// neighbors with its own LSA
+					broadcastToNeighbors(respPacket.neighborID,
+							backToServerPacket, (short)2);
+				}
+				
+				
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				System.out.println("FAIL TO CONNECT TO THE SERVER");
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+			
+			
+			
+		}
 	}
+
+	
 
 	/**
 	 * output the neighbors of the routers
@@ -795,7 +909,7 @@ public class Router {
 							cmdLine[3], Short.parseShort(cmdLine[4]));
 				} else if (command.equals("start")) {
 					processStart();
-				} else if (command.equals("connect ")) {
+				} else if (command.startsWith("connect ")) {
 					String[] cmdLine = command.split(" ");
 					processConnect(cmdLine[1], Short.parseShort(cmdLine[2]),
 							cmdLine[3], Short.parseShort(cmdLine[4]));

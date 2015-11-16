@@ -26,16 +26,6 @@ public class LinkStateDatabase implements Serializable {
 		rd = routerDescription;
 		LSA l = initLinkStateDatabase();
 		_store.put(l.linkStateID, l);
-		//ArrayList<String> nodes = new ArrayList<String>();
-		//ArrayList<Edge> edges = new ArrayList<Edge>();
-		//for (String key : _store.keySet()) {
-		//	nodes.add(key);
-		//	for (LinkDescription ld : _store.get(key).links) {
-		//		Edge e = new Edge(key, ld.linkID, ld.tosMetrics);
-		//		edges.add(e);
-		//	}
-		//}
-		//dijkstra = new Dijkstra(nodes, edges);
 		
 	}
 
@@ -67,11 +57,12 @@ public class LinkStateDatabase implements Serializable {
 	
 	/**
 	 * delete every nodes that cannot be reached by the router
+	 * @buggy --> cannot be used at the moment
 	 * 
 	 * **/
 	public void clean() {
 		LinkedList<String> list = new LinkedList<String>();
-		System.out.println("HOST:" + rd.simulatedIPAddress);
+		//System.out.println("HOST:" + rd.simulatedIPAddress);
 		synchronized(_store) {
 			for (String ip: _store.keySet()) {
 				list.add(ip);
@@ -100,6 +91,7 @@ public class LinkStateDatabase implements Serializable {
 		}
 	}
 	
+	//backward iteration
 	public boolean deleteLinkFromANeighbor(String ipAddress, String lostLink) {
 		boolean status = true;
 		synchronized(_store) {
@@ -108,9 +100,9 @@ public class LinkStateDatabase implements Serializable {
 				if (ip.equals(ipAddress)) {
 					List<LinkDescription> list = Collections.synchronizedList(_store.get(ip).links);
 					synchronized (list) {
-						for (LinkDescription l : list) {
-							if (l.linkID.equals(lostLink)) {
-								list.remove(l);
+						for (int i = list.size()-1; i>=0; i--) {
+							if (list.get(i).linkID.equals(lostLink)) {
+								list.remove(i);
 								_store.get(ip).lsaSeqNumber++;
 								status = true;
 							}
@@ -124,6 +116,7 @@ public class LinkStateDatabase implements Serializable {
 	
 	
 	//delete the lost neighbor everywhere in the database
+	//forward iteration
 	public boolean deleteNeighbor(String ipAddress) {
 		boolean neighborDeleted = false;
 		synchronized(_store) {
