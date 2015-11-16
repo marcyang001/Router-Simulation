@@ -46,6 +46,10 @@ public class SignalMessageServer implements Runnable{
 		timer.scheduleAtFixedRate(pt, new Date(), 5000);
 	}
 	
+	public void stop() {
+		Thread.currentThread().interrupt();
+	}
+	
 	class PingTask extends TimerTask {
 		
 		Socket sender;

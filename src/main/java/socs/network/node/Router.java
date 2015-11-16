@@ -692,11 +692,18 @@ public class Router {
 		
 		List<Link> list = new ArrayList<Link>(Arrays.asList(ports));
 		List<Link> listPot = new ArrayList<Link>(Arrays.asList(potentialNeighbors));
+		List<Thread> listTime = new ArrayList<Thread>(Arrays.asList(t));
 		boolean status = false;
 		for (int i = 0; i< ports.length; i++) {
 			if (ports[i] != null) {
 				if (ports[i].router2.processPortNumber == portNumber) {
+					
 					System.out.println("REMOVE THE NEIGHBOR LINK FROM PORT!!!!!!");
+					//kill the timer
+					t[i] = null;	
+					listTime.removeAll(Arrays.asList(t[i]));
+					t = listTime.toArray(t);
+					//remove the port
 					list.removeAll(Arrays.asList(ports[i]));
 					ports = list.toArray(ports);
 					for (int j = 0; j < potentialNeighbors.length; j++) {
@@ -705,8 +712,6 @@ public class Router {
 								System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS!!!!!!");
 								listPot.removeAll(Arrays.asList(potentialNeighbors[j]));
 								potentialNeighbors = listPot.toArray(potentialNeighbors);
-								
-								t[j] = null;
 								break;
 							}
 						}	
@@ -872,7 +877,7 @@ public class Router {
 			
 		}
 		else {
-			System.out.println("PORTS FOR THIS ROUTER ARE FULL");
+			System.out.println("PORTS FOR THIS ROUTER ARE FULL / LINK ALREADY ESTABLISHED");
 		}
 	}
 

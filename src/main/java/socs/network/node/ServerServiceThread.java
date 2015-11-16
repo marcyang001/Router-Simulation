@@ -515,12 +515,18 @@ class ServerInputOutput implements Runnable {
 	private void deleteLostLink(String lostNeighbor) {
 		List<Link> list = new ArrayList<Link>(Arrays.asList(mm_ports));
 		List<Link> listPot = new ArrayList<Link>(Arrays.asList(mm_potentialNeighbors));
+		List<Thread> listTimer = new ArrayList<Thread>(Arrays.asList(t));
 		for (int i = 0; i<this.mm_ports.length; i++) {
 			if (this.mm_ports[i] != null) {
 				if (this.mm_ports[i].router2.simulatedIPAddress.equals(lostNeighbor)) {
 					System.out.println("REMOVE THE LINK FROM PORT (SERVER) !!!!!!");
+					//kill the timer thread  
+					t[i] = null;
+					listTimer.removeAll(Arrays.asList(this.t[i]));
+					this.t = listTimer.toArray(this.t);
 					list.removeAll(Arrays.asList(this.mm_ports[i]));
 					this.mm_ports = list.toArray(this.mm_ports);
+					
 					for (int j = 0; j < this.mm_potentialNeighbors.length; j++) {
 						if (this.mm_potentialNeighbors[j].router2.simulatedIPAddress.equals(lostNeighbor)) {
 							System.out.println("REMOVE THE LINK FROM POTENTIAL NEIGHBORS (SERVER)!!!!!!");
@@ -529,8 +535,7 @@ class ServerInputOutput implements Runnable {
 							break;
 						}
 					}
-					//kill the timer
-					t[i] = null;
+					
 					break;
 				}
 			}

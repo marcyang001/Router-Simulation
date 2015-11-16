@@ -10,9 +10,7 @@ package socs.network.node;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.*;
 
 import socs.network.message.LinkDescription;
@@ -43,6 +41,9 @@ public class SignalMessage implements Runnable {
 		//send HELLO to neighbors every 5 seconds
 		timer.scheduleAtFixedRate(pm, new Date(), 5000);
 		
+	}
+	public void stop() {
+		Thread.currentThread().interrupt();
 	}
 	
 
