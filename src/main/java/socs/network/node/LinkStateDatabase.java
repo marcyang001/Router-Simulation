@@ -45,6 +45,7 @@ public class LinkStateDatabase implements Serializable {
 			}
 		}
 		Dijkstra dijkstra = new Dijkstra(nodes, edges);
+		//System.out.println("the simulated address is "+ rd.simulatedIPAddress);
 		dijkstra.execute(rd.simulatedIPAddress);
 		return dijkstra.getPath(destinationIP);
 	}

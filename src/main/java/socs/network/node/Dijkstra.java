@@ -16,6 +16,7 @@ public class Dijkstra {
 	private Set<String> nodesOutsideC;
 	private HashMap<String, String> predecessors;
 	private HashMap<String, Integer> distance;
+	private String source;
 
 	public Dijkstra(ArrayList<String> nodes, ArrayList<Edge> edges) {
 		// create a copy of the array so that we can operate on this array
@@ -24,6 +25,7 @@ public class Dijkstra {
 	}
 
 	public void execute(String source) {
+		this.source = source;
 		nodesInC = new HashSet<String>();
 		nodesOutsideC = new HashSet<String>(this.nodes);
 		distance = new HashMap<String, Integer>();
@@ -58,7 +60,7 @@ public class Dijkstra {
 		Collections.reverse(path);
 		
 		StringBuffer sb = new StringBuffer();
-	    
+	    if(! this.source.equals(path.get(0)) ) return null;
 		for(int i = 0; i<path.size(); i++) {
 			if(i != path.size() -1) {
 				sb.append(path.get(i) + " ->(" + getDistance(path.get(i), path.get(i+1)) + ")" 
