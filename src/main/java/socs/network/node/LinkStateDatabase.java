@@ -70,8 +70,8 @@ public class LinkStateDatabase implements Serializable {
 			}
 			for (int i = list.size()-1; i>=0; i--) {
 				if (!list.get(i).equals(rd.simulatedIPAddress)) {
-					System.out.println(list.get(i));
-					System.out.println(getShortestPath(list.get(i)));
+					//System.out.println(list.get(i));
+					//System.out.println(getShortestPath(list.get(i)));
 					if (getShortestPath(list.get(i)) == null) {
 						_store.remove(list.get(i));
 					}

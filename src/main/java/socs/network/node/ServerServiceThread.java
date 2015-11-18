@@ -386,6 +386,7 @@ class ServerInputOutput implements Runnable {
 							//delete the key of lost neighbor from the database 
 							// delete the neighbor link in its own LSA if there is any
 							deleteLostNeighborDatabase(lostNeighbor);
+							
 							mm_database.deleteNeighbor(lostNeighbor);
 							databaseUpdate(packetFromClient);
 							//mm_database.clean();
@@ -422,37 +423,46 @@ class ServerInputOutput implements Runnable {
 					else if (packetFromClient.sospfType == 6) {
 						
 						String lostneighbor = packetFromClient.originalSender;
-								
-						deleteLostLink(lostneighbor);
-						boolean updated = databaseUpdate(packetFromClient);
-						
-						if (updated) {
-							System.out.println("UPDATED");
-							for (int i = 0; i < mm_lsa.links.size(); i++) {
-								if (mm_lsa.links.get(i).linkID.equals(lostneighbor)) {
-									mm_lsa.links.remove(i);
-									mm_lsa.lsaSeqNumber++;
-									break;
-								}
+						//update its own lsa to its own database
+						for (int i = 0; i < mm_lsa.links.size(); i++) {
+							if (mm_lsa.links.get(i).linkID.equals(lostneighbor)) {
+								mm_lsa.links.remove(i);
+								mm_lsa.lsaSeqNumber++;
+								mm_database.updateLSA(serverRouter.simulatedIPAddress, mm_lsa);
+								break;
 							}
-							
-							SOSPFPacket broadcastDisconnect = generateFullPackage((short)7, packetFromClient);
-							broadcastToNeighbors(lostneighbor, broadcastDisconnect, (short)7);
-
 						}
+						//delete the neighbor port
+						deleteLostLink(lostneighbor);
+						if (mm_ports[0] == null && mm_potentialNeighbors[0]== null) {
+							mm_database.cleanAll();
+						}else {
+							mm_database.clean();
+						}
+						
+								
+							
+						SOSPFPacket broadcastDisconnect = generateFullPackage((short)7, packetFromClient);
+						broadcastToNeighbors(lostneighbor, broadcastDisconnect, (short)7);
+
+						//}
+						
+						
 						
 						System.out.println(mm_database.toString());
 						
 						
 					}else if (packetFromClient.sospfType == 7) {
 							
-							boolean updated = databaseUpdate(packetFromClient);							
-	 					
-							if (updated) {
+						System.out.println("TYPE 7");	
+						boolean updated = databaseUpdate(packetFromClient);							
+							
+						if (updated) {
+							mm_database.clean();	
+							broadcastToNeighbors(packetFromClient.neighborID, packetFromClient, (short)7);
 								
-								broadcastToNeighbors(packetFromClient.neighborID, packetFromClient, (short)7);
-								
-							}
+						}
+						System.out.println(mm_database.toString());
 					}
 						
 						
