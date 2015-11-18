@@ -454,7 +454,7 @@ class ServerInputOutput implements Runnable {
 						
 					}else if (packetFromClient.sospfType == 7) {
 							
-						System.out.println("TYPE 7");	
+						//System.out.println("TYPE 7");	
 						boolean updated = databaseUpdate(packetFromClient);							
 							
 						if (updated) {
