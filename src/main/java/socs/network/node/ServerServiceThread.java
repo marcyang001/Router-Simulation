@@ -445,10 +445,7 @@ class ServerInputOutput implements Runnable {
 						SOSPFPacket broadcastDisconnect = generateFullPackage((short)7, packetFromClient);
 						broadcastToNeighbors(lostneighbor, broadcastDisconnect, (short)7);
 
-						//}
-						
-						
-						
+												
 						System.out.println(mm_database.toString());
 						
 						
@@ -464,8 +461,6 @@ class ServerInputOutput implements Runnable {
 						}
 						System.out.println(mm_database.toString());
 					}
-						
-						
 					else {
 						
 						// prepare a packet with LSA of this current

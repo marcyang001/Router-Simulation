@@ -151,7 +151,6 @@ public class Router {
 			
 			
 			newPacket.originalSender = disconnectNode;
-			newPacket.neighborID = rd.simulatedIPAddress;
 			broadcastToNeighbors(disconnectNode, newPacket, (short)7);
 			
 			//System.out.println("THEN: " + m_router.lsa.lsaSeqNumber);
