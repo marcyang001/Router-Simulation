@@ -1,17 +1,14 @@
 # README #
 
-Group member: 
 
-- Yunjing Tian 
+Functions
 
-- Marc Yang
-
-
-Need to do:
- 
+* ATTACH()
+* START()
 * QUIT() -- DONE 
 * DISCONNECT() 
-* CONNECT() 
+* CONNECT()
+* DETECT() --> using Dijkstra shortest path 
 
 * Testing ---> NEED TO THINK OF DIFFERENT SCENARIOS
 
