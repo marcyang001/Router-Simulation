@@ -132,17 +132,17 @@ public class Router {
 					(short) 6, rd.simulatedIPAddress,
 					rd.simulatedIPAddress, (short)-1);
 			
+			responsePacket.lsaArray = lsd.retrieveLSAs();
 			responsePacket.lsaArray.add(lsa);
-			responsePacket.lsaArray.addAll(lsd.retrieveLSAs());
 			responsePacket.originalSender = rd.simulatedIPAddress;
 			
 			
-			SOSPFPacket newPacket = generateFullPacketUpdate((short)6, responsePacket);
+			//SOSPFPacket newPacket = generateFullPacketUpdate((short)6, responsePacket);
 			
 			ObjectOutputStream disconnectSignal = null;
 			try {
 				disconnectSignal = new ObjectOutputStream(client.getOutputStream());
-				disconnectSignal.writeObject(newPacket);
+				disconnectSignal.writeObject(responsePacket);
 			}
 			catch (IOException e) {
 				System.out.println("FAIL TO SEND A DISCONNECT MESSAGE");
@@ -150,8 +150,8 @@ public class Router {
 			
 			
 			
-			newPacket.originalSender = disconnectNode;
-			broadcastToNeighbors(disconnectNode, newPacket, (short)7);
+			responsePacket.originalSender = disconnectNode;
+			broadcastToNeighbors(disconnectNode, responsePacket, (short)7);
 			
 			//System.out.println("THEN: " + m_router.lsa.lsaSeqNumber);
 			System.out.println(lsd.toString());

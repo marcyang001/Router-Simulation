@@ -444,8 +444,7 @@ class ServerInputOutput implements Runnable {
 							
 						SOSPFPacket broadcastDisconnect = generateFullPackage((short)7, packetFromClient);
 						broadcastToNeighbors(lostneighbor, broadcastDisconnect, (short)7);
-
-												
+						
 						System.out.println(mm_database.toString());
 						
 						
@@ -453,16 +452,38 @@ class ServerInputOutput implements Runnable {
 							
 						//System.out.println("TYPE 7");	
 						boolean updated = databaseUpdate(packetFromClient);							
-							
+						
 						if (updated) {
-							mm_database.clean();	
-							broadcastToNeighbors(packetFromClient.neighborID, packetFromClient, (short)7);
+							System.out.println("UPDATED!!!!!!!!");
+							mm_database.clean();
+							System.out.println("SENDER:" + packetFromClient.neighborID);
+							
+							//generate a new packet
+							
+							SOSPFPacket newPacket = new SOSPFPacket(
+									serverRouter.processIPAddress,
+									serverRouter.processPortNumber,
+									serverRouter.simulatedIPAddress,
+									serverRouter.simulatedIPAddress, (short)7,
+									serverRouter.simulatedIPAddress,
+									packetFromClient.neighborID, (short)-1);
+							
+							if (packetFromClient.originalSender != null) {
+								newPacket.originalSender = packetFromClient.originalSender;
+							}
+
+							//retrieve all LSA from the database and put them in the packet to sent
+							
+							newPacket.lsaArray = mm_database.retrieveLSAs();
+							
+							broadcastToNeighbors(packetFromClient.neighborID, newPacket, (short)7);
 								
 						}
 						System.out.println(mm_database.toString());
 					}
 					else {
 						
+						// when there is no specific type
 						// prepare a packet with LSA of this current
 						// router and send it back to client
 						SOSPFPacket serverPacketForUpdate = generateFullPackage(
@@ -693,9 +714,10 @@ class ServerInputOutput implements Runnable {
 		updatePackage.sospfType = type;
 
 		for (int i = 0; i < mm_ports.length; i++) {
-
+			
 			if (mm_ports[i] != null) {
 				if (!mm_ports[i].router2.simulatedIPAddress.equals(senderIP)) {
+					System.out.println("neighbors: " + mm_ports[i].router2.simulatedIPAddress);
 					try {
 						clients[i] = new Socket(
 								mm_ports[i].router2.processIPAddress,
