@@ -795,14 +795,11 @@ public class Router {
 		if (freeIndex >=0 && freePos >= 0) {
 			
 			RouterDescription r2 = new RouterDescription(processIP, processPort, simulatedIP);
+			
 			//build the link 
 			Link l = new Link(rd, r2, weight);
 			
 			
-			LinkDescription nl = addNeighborLink(l, freeIndex, freePos);
-			
-			lsa.links.add(nl);
-			lsa.lsaSeqNumber++;
 			
 			
 			try {
@@ -812,10 +809,10 @@ public class Router {
 						rd.processIPAddress,
 						rd.processPortNumber,
 						rd.simulatedIPAddress,
-						potentialNeighbors[freePos].router2.simulatedIPAddress,
+						r2.simulatedIPAddress,
 						(short) 0, rd.simulatedIPAddress,
 						rd.simulatedIPAddress,
-						potentialNeighbors[freePos].weight);
+						weight);
 				
 				SOSPFPacket connectPackage = this.generateFullPacketUpdate((short)0, clientPacket);
 				//send the first packet for HELLO message
@@ -826,40 +823,55 @@ public class Router {
 				SOSPFPacket respPacket = (SOSPFPacket) inStream.readObject();
 				
 				if (respPacket.sospfType == 0) {
-					//System.out.println("TWO WAY");
+					
+					LinkDescription nl = addNeighborLink(l, freeIndex, freePos);
+					
+					
+					lsa.links.add(nl);
+					lsa.lsaSeqNumber++;
+					
 					potentialNeighbors[freePos].router2.status = RouterStatus.TWO_WAY;
 					ports[freeIndex].router2.status = RouterStatus.TWO_WAY;
 					//second hello 
 					outStream = new ObjectOutputStream(connect.getOutputStream());
 					outStream.writeObject(connectPackage);
+				
+					//receive this after second hello
+					inStream = new ObjectInputStream(connect.getInputStream());
+					respPacket = (SOSPFPacket) inStream.readObject();
+					if (respPacket.sospfType == 1) {
+						
+						databaseUpdate(respPacket);
+						
+						// prepare its own package and
+						// send back to the server
+
+						SOSPFPacket backToServerPacket = generateFullPacketUpdate(
+								(short) 1,
+								respPacket);
+						outStream = new ObjectOutputStream(connect.getOutputStream());
+						outStream.writeObject(backToServerPacket);
+
+						// forward the package to its
+						// neighbors with its own LSA
+						broadcastToNeighbors(respPacket.neighborID,
+								backToServerPacket, (short)2);
+						
+						sendMessage[freeIndex] = new SignalMessage(ports[freeIndex], connect, this);
+						
+						t[freeIndex] = new Thread(sendMessage[freeIndex]);
+						t[freeIndex].start();
+					}
+				}
+				else {
+					
+					System.out
+							.println("Client did not receive a return message from the server");
+
 				}
 				
-				//receive this after second hello
-				inStream = new ObjectInputStream(connect.getInputStream());
-				respPacket = (SOSPFPacket) inStream.readObject();
-				if (respPacket.sospfType == 1) {
-					
-					databaseUpdate(respPacket);
-					
-					// prepare its own package and
-					// send back to the server
-
-					SOSPFPacket backToServerPacket = generateFullPacketUpdate(
-							(short) 1,
-							respPacket);
-					outStream = new ObjectOutputStream(connect.getOutputStream());
-					outStream.writeObject(backToServerPacket);
-
-					// forward the package to its
-					// neighbors with its own LSA
-					broadcastToNeighbors(respPacket.neighborID,
-							backToServerPacket, (short)2);
-					
-					sendMessage[freeIndex] = new SignalMessage(ports[freeIndex], connect, this);
-					
-					t[freeIndex] = new Thread(sendMessage[freeIndex]);
-					t[freeIndex].start();
-				}
+				
+				
 				
 				
 				

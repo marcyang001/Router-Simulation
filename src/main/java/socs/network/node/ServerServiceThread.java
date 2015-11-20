@@ -506,7 +506,7 @@ class ServerInputOutput implements Runnable {
 				}
 
 			} catch (IOException e) {
-				System.out.println("Cannot receive input object. Quit");
+				//System.out.println("Cannot receive input object. Quit");
 				//do some treatment here
 				/**
 				 * catch the lost neighbor:
