@@ -5,8 +5,6 @@ import socs.network.message.LinkDescription;
 import socs.network.message.SOSPFPacket;
 import socs.network.util.Configuration;
 
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -24,7 +22,6 @@ public class Router {
 
 	protected LinkStateDatabase lsd;
 	protected LSA lsa;
-	private final Lock lock = new ReentrantLock();
 	
 	RouterDescription rd = new RouterDescription();
 	// assuming that all routers are with 4 ports
